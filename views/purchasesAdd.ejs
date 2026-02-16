@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .pixel-card { background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); }
+        .dark .pixel-card { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); }
+        .custom-table tr { transition: all 0.2s; }
+        .custom-table tr:hover { background-color: rgba(59, 130, 246, 0.05); }
+        .search-results-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    
+    <div id="safe-products-data" data-products='<%= JSON.stringify(products) %>' class="hidden"></div>
+
+    <div class="flex h-screen">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="p-6 overflow-y-auto custom-scroll">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black italic flex items-center gap-3">
+                            <i data-lucide="shopping-cart" class="text-blue-600 w-8 h-8"></i>
+                            فاتورة شراء جديدة
+                        </h1>
+                    </div>
+                    <div class="flex gap-3 w-full md:w-auto">
+                        <input type="text" id="invoiceNumber" placeholder="رقم الفاتورة (اختياري)" 
+                               class="flex-1 md:w-48 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-3 rounded-xl font-bold focus:border-blue-500 outline-none transition-all">
+                        
+                        <select id="supplierId" class="flex-1 md:w-64 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-3 rounded-xl font-bold focus:border-blue-500 outline-none transition-all">
+                            <option value="">اختر المورد...</option>
+                            <% suppliers.forEach(s => { %>
+                                <option value="<%= s.id %>"><%= s.name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-6">
+                    <div class="col-span-12 lg:col-span-8">
+                        <div class="pixel-card p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl min-h-[500px]">
+                            
+                            <div class="relative mb-8">
+                                <label class="block text-sm font-black mb-2 mr-2">البحث السريع (اسم المنتج أو باركود)</label>
+                                <div class="relative group">
+                                    <input type="text" id="productSearchInput" oninput="filterProducts(this.value)" autocomplete="off"
+                                           placeholder="ابحث هنا... (مثال: آيفون 15 أو 123456)" 
+                                           class="w-full p-5 bg-gray-100 dark:bg-slate-800/50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-blue-500 transition-all pr-12">
+                                    <i data-lucide="search" class="absolute right-4 top-5 text-slate-400"></i>
+                                </div>
+                                
+                                <div id="searchResults" class="hidden absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 search-results-shadow rounded-2xl border border-slate-100 dark:border-slate-800 max-h-80 overflow-y-auto">
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full custom-table">
+                                    <thead>
+                                        <tr class="text-slate-400 text-sm font-black italic border-b-2 border-slate-100 dark:border-slate-800">
+                                            <th class="py-4 text-right">المنتج</th>
+                                            <th class="py-4 text-center">الكمية</th>
+                                            <th class="py-4 text-center">سعر الشراء</th>
+                                            <th class="py-4 text-center">الإجمالي</th>
+                                            <th class="py-4 text-center w-16"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsList"></tbody>
+                                </table>
+                                <div id="emptyState" class="text-center py-20 opacity-20 italic font-black text-xl">
+                                    <i data-lucide="package-plus" class="mx-auto w-16 h-16 mb-2"></i>
+                                    ابدأ بإضافة المنتجات للفاتورة
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-12 lg:col-span-4">
+                        <div class="pixel-card p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl sticky top-6">
+                            <h2 class="text-xl font-black mb-6 flex items-center gap-2 italic">
+                                <i data-lucide="calculator" class="text-blue-500"></i> ملخص الحساب
+                            </h2>
+                            
+                            <div class="space-y-5">
+                                <div class="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10">
+                                    <span class="font-black text-slate-500">الإجمالي الكلي</span>
+                                    <span id="displayTotal" class="text-3xl font-black italic text-blue-600">0</span>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-black mb-2 text-slate-400">المبلغ المدفوع كاش</label>
+                                    <input type="number" id="paidAmount" value="0" oninput="calculateSummary()"
+                                           class="w-full p-5 bg-gray-100 dark:bg-slate-800 rounded-2xl border-none font-black text-2xl text-green-500 text-left focus:ring-2 focus:ring-green-500 transition-all">
+                                </div>
+
+                                <div class="flex justify-between items-center p-5 bg-red-50 dark:bg-red-500/5 rounded-2xl border border-red-100 dark:border-red-500/10">
+                                    <span class="font-black text-red-400">المتبقي (دين للمورد)</span>
+                                    <span id="displayRemaining" class="text-2xl font-black text-red-600 italic">0</span>
+                                </div>
+
+                                <button onclick="savePurchase()" class="w-full mt-6 bg-slate-900 dark:bg-blue-600 hover:scale-[1.02] active:scale-95 text-white py-6 rounded-2xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 group">
+                                    <i data-lucide="check-circle" class="group-hover:rotate-12 transition-transform"></i>
+                                    تأكيد وحفظ الفاتورة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ✅ جلب البيانات بطريقة آمنة تمنع خطأ "Unterminated string"
+        const productsRaw = document.getElementById('safe-products-data').getAttribute('data-products');
+        const allProducts = JSON.parse(productsRaw);
+        
+        let items = [];
+
+        function filterProducts(query) {
+            const resultsDiv = document.getElementById('searchResults');
+            query = query.toLowerCase().trim();
+
+            if (!query) {
+                resultsDiv.classList.add('hidden');
+                return;
+            }
+
+            const filtered = allProducts.filter(p => 
+                p.name.toLowerCase().includes(query) || 
+                (p.barcode && p.barcode.includes(query))
+            );
+
+            if (filtered.length > 0) {
+                resultsDiv.innerHTML = filtered.map(p => `
+                    <div onclick="selectProductById(${p.id})" class="p-4 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer flex justify-between items-center border-b border-slate-50 dark:border-slate-800 last:border-none transition-colors">
+                        <div>
+                            <div class="font-black text-slate-800 dark:text-slate-200">${p.name}</div>
+                            <div class="text-xs text-slate-400 font-bold italic">${p.barcode || 'بدون باركود'}</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-blue-600 font-black">${parseFloat(p.purchasePrice).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+                resultsDiv.classList.remove('hidden');
+            } else {
+                resultsDiv.innerHTML = `<div class="p-6 text-center text-slate-400 font-bold italic">لا يوجد منتج</div>`;
+                resultsDiv.classList.remove('hidden');
+            }
+        }
+
+        function selectProductById(id) {
+            const product = allProducts.find(p => p.id === id);
+            if (product) {
+                const existing = items.find(i => i.productId === product.id);
+                if (existing) {
+                    existing.quantity++;
+                } else {
+                    items.push({ 
+                        productId: product.id, 
+                        name: product.name, 
+                        quantity: 1, 
+                        price: parseFloat(product.purchasePrice) 
+                    });
+                }
+                renderItems();
+                document.getElementById('productSearchInput').value = '';
+                document.getElementById('searchResults').classList.add('hidden');
+            }
+        }
+
+        function renderItems() {
+            const tbody = document.getElementById('itemsList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if(items.length === 0) {
+                emptyState.classList.remove('hidden');
+                tbody.innerHTML = '';
+            } else {
+                emptyState.classList.add('hidden');
+                tbody.innerHTML = items.map((item, index) => `
+                    <tr class="border-b border-slate-50 dark:border-slate-800/50 font-bold">
+                        <td class="py-5 font-black">${item.name}</td>
+                        <td class="py-5 text-center">
+                            <input type="number" value="${item.quantity}" onchange="updateQty(${index}, this.value)" 
+                                   class="w-20 p-2 bg-gray-100 dark:bg-slate-900 rounded-xl text-center border-none">
+                        </td>
+                        <td class="py-5 text-center">
+                            <input type="number" value="${item.price}" onchange="updatePrice(${index}, this.value)" 
+                                   class="w-28 p-2 bg-gray-100 dark:bg-slate-900 rounded-xl text-center border-none text-blue-600">
+                        </td>
+                        <td class="py-5 text-center">${(item.quantity * item.price).toLocaleString()}</td>
+                        <td class="py-5 text-center">
+                            <button onclick="removeItem(${index})" class="text-red-500"><i data-lucide="trash-2"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            lucide.createIcons();
+            calculateSummary();
+        }
+
+        function updateQty(index, val) { items[index].quantity = Math.max(0, parseFloat(val) || 0); renderItems(); }
+        function updatePrice(index, val) { items[index].price = Math.max(0, parseFloat(val) || 0); renderItems(); }
+        function removeItem(index) { items.splice(index, 1); renderItems(); }
+
+        function calculateSummary() {
+            const total = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+            const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+            document.getElementById('displayTotal').innerText = total.toLocaleString();
+            document.getElementById('displayRemaining').innerText = (total - paid).toLocaleString();
+            return { total, paid };
+        }
+
+        async function savePurchase() {
+            const { total, paid } = calculateSummary();
+            const supplierId = document.getElementById('supplierId').value;
+            if (!supplierId || items.length === 0) return Swal.fire('خطأ', 'أكمل بيانات الفاتورة', 'error');
+
+            const response = await fetch('/purchases/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    supplierId,
+                    invoiceNumber: document.getElementById('invoiceNumber').value,
+                    items,
+                    totalAmount: total,
+                    paidAmount: paid
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire('نجاح', 'تم حفظ الفاتورة', 'success').then(() => window.location.href = '/purchases');
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('productSearchInput').contains(e.target)) {
+                document.getElementById('searchResults').classList.add('hidden');
+            }
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

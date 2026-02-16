@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .pixel-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .form-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        }
+        .dark .form-card {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex h-screen">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 flex flex-col overflow-y-auto custom-scroll">
+            <%- include('partials/navbar') %>
+
+            <% 
+                // التحقق مما إذا كنا في وضع التعديل أم الإضافة
+                const isEdit = typeof customer !== 'undefined' && customer !== null;
+                const formAction = isEdit ? `/customers/update/${customer.id}` : '/customers/create';
+                const pageTitle = isEdit ? 'تعديل بيانات الزبون' : 'إضافة زبون جديد';
+                const btnText = isEdit ? 'حفظ التغييرات' : 'تأكيد الإضافة';
+                const accentColor = isEdit ? 'amber' : 'blue';
+            %>
+
+            <div class="p-8 flex justify-center items-center min-h-[80vh]">
+                <div class="w-full max-w-2xl">
+                    
+                    <div class="mb-8 text-center">
+                        <div class="inline-flex p-4 rounded-3xl bg-<%= accentColor %>-50 dark:bg-<%= accentColor %>-500/10 text-<%= accentColor %>-600 mb-4">
+                            <i data-lucide="<%= isEdit ? 'user-cog' : 'user-plus' %>" class="w-10 h-10"></i>
+                        </div>
+                        <h1 class="text-3xl font-black italic"><%= pageTitle %></h1>
+                        <p class="text-slate-500 font-bold mt-2">
+                            <%= isEdit ? `أنت تقوم بتعديل حساب: ${customer.name}` : 'أدخل البيانات الأساسية لفتح حساب جديد' %>
+                        </p>
+                    </div>
+
+                    <form action="<%= formAction %>" method="POST" class="form-card p-10 rounded-[3rem] border border-gray-100 dark:border-slate-800 shadow-2xl space-y-8">
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-300 mr-2">
+                                <i data-lucide="signature" class="w-4 h-4 text-blue-500"></i>
+                                اسم الزبون بالكامل
+                            </label>
+                            <input type="text" name="name" 
+                                value="<%= isEdit ? customer.name : '' %>" 
+                                required placeholder="مثلاً: علي جاسم محمد"
+                                class="pixel-input w-full p-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent outline-none transition-all font-bold text-lg">
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-300 mr-2">
+                                <i data-lucide="banknote" class="w-4 h-4 text-red-500"></i>
+                                <%= isEdit ? 'الرصيد الحالي (الدين)' : 'الرصيد الافتتاحي (الدين)' %>
+                            </label>
+                            <div class="relative">
+                                <input type="number" name="currentDebt" step="0.01" 
+                                    value="<%= isEdit ? customer.currentDebt : '0' %>"
+                                    class="pixel-input w-full p-5 pr-14 bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent outline-none transition-all font-black text-2xl text-red-500 text-left">
+                                <span class="absolute right-5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">د.ع</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 pt-6">
+                            <button type="submit" class="flex-[2] bg-<%= accentColor %>-600 hover:bg-<%= accentColor %>-700 text-white py-5 rounded-2xl font-black text-xl shadow-xl shadow-<%= accentColor %>-500/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                <i data-lucide="<%= isEdit ? 'save' : 'check-circle-2' %>"></i>
+                                <%= btnText %>
+                            </button>
+                            <a href="/customers" class="flex-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 py-5 rounded-2xl font-black text-center transition-all">
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

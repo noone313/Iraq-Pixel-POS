@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .purchase-row { transition: all 0.2s ease; }
+        .purchase-row:hover { background-color: rgba(59, 130, 246, 0.03); }
+        .status-badge { padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex h-screen">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="p-8 overflow-y-auto custom-scroll">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black italic text-slate-800 dark:text-white flex items-center gap-3">
+                            <i data-lucide="shopping-bag" class="text-blue-600 w-8 h-8"></i>
+                            سجل المشتريات
+                        </h1>
+                        <p class="text-slate-500 font-bold mt-1">إدارة فواتير الموردين وتتبع المخزون الوارد</p>
+                    </div>
+                    
+                    <a href="/purchases/create" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        إضافة فاتورة مشتريات
+                    </a>
+                </div>
+
+                <div class="bg-white dark:bg-pixelCard border border-gray-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800">
+                                <th class="p-6 font-black italic text-slate-400 text-sm">رقم الفاتورة</th>
+                                <th class="p-6 font-black italic text-slate-400 text-sm">المورد</th>
+                                <th class="p-6 font-black italic text-slate-400 text-sm">التاريخ</th>
+                                <th class="p-6 font-black italic text-slate-400 text-sm text-center">الإجمالي</th>
+                                <th class="p-6 font-black italic text-slate-400 text-sm text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% purchases.forEach(purchase => { %>
+                                <tr class="purchase-row border-b border-gray-50 dark:border-slate-800/50">
+                                    <td class="p-6">
+                                        <span class="font-black text-blue-600">#<%= purchase.invoiceNumber || 'G-' + purchase.id %></span>
+                                    </td>
+                                    <td class="p-6 font-bold">
+                                        <%= purchase.Supplier ? purchase.Supplier.name : 'مورد عام' %>
+                                    </td>
+                                    <td class="p-6 font-bold text-slate-500 text-sm">
+                                        <%= new Date(purchase.createdAt).toLocaleDateString('ar-IQ') %>
+                                    </td>
+                                    <td class="p-6 text-center">
+                                        <span class="font-black text-lg"><%= parseFloat(purchase.total).toLocaleString() %></span>
+                                        <small class="text-[10px] font-bold text-slate-400">د.ع</small>
+                                    </td>
+                                    <td class="p-6 flex justify-center gap-2">
+                                        <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-blue-500 hover:text-white transition-all">
+                                            <i data-lucide="eye" class="w-4 h-4"></i>
+                                        </button>
+                                        
+                                        <form action="/purchases/delete/<%= purchase.id %>" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف الفاتورة؟ سيتم عكس حركات المخزن والديون!')">
+                                            <button type="submit" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-500 hover:text-white transition-all">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+
+                            <% if (purchases.length === 0) { %>
+                                <tr>
+                                    <td colspan="5" class="p-20 text-center opacity-30 italic">
+                                        <i data-lucide="file-search" class="w-16 h-16 mx-auto mb-4"></i>
+                                        <p class="font-black text-xl">لا توجد فواتير مشتريات مسجلة</p>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center mt-8 p-4">
+                    <div class="text-slate-500 font-bold text-sm">
+                        عرض <span class="text-blue-600"><%= purchases.length %></span> من أصل <%= totalItems %> فاتورة
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <% if (currentPage > 1) { %>
+                            <a href="/purchases?page=<%= currentPage - 1 %>" 
+                               class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-blue-600 hover:text-white transition-all">
+                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </a>
+                        <% } %>
+
+                        <% for(let i = 1; i <= totalPages; i++) { %>
+                            <a href="/purchases?page=<%= i %>" 
+                               class="px-5 py-2 rounded-xl font-black transition-all <%= currentPage === i ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400' %>">
+                                <%= i %>
+                            </a>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                            <a href="/purchases?page=<%= currentPage + 1 %>" 
+                               class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-blue-600 hover:text-white transition-all">
+                                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

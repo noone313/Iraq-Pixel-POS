@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex">
+        <%- include('partials/sidebar') %>
+        <main class="flex-1 flex flex-col min-h-screen">
+            <%- include('partials/navbar') %>
+
+            <div class="flex-1 p-6 lg:p-10">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-red-100 dark:bg-red-500/10 text-red-500 rounded-2xl shadow-sm">
+                            <i data-lucide="trash-2" class="w-8 h-8"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-black italic tracking-tight">سلة <span class="text-red-500">المحذوفات</span></h1>
+                            <p class="text-slate-500 font-medium">المنتجات المؤرشفة التي يمكن استعادتها للمخزن</p>
+                        </div>
+                    </div>
+                    <a href="/products" class="bg-white dark:bg-pixelCard text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl font-bold border border-gray-100 dark:border-slate-800 hover:bg-gray-50 transition-all flex items-center gap-2">
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        العودة للمنتجات
+                    </a>
+                </div>
+
+                <div class="mb-6">
+                    <form action="/products/trash" method="GET" class="flex gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input 
+                                type="text" 
+                                name="search" 
+                                placeholder="بحث عن منتج محذوف بالاسم أو الباركود..." 
+                                value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>"
+                                class="w-full pr-12 pl-4 py-4 bg-white dark:bg-pixelCard border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
+                            >
+                        </div>
+                        <button type="submit" class="bg-slate-900 dark:bg-red-600 text-white px-8 rounded-2xl font-bold hover:scale-105 transition-all shadow-lg active:scale-95">
+                            بحث
+                        </button>
+                        <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+                            <a href="/products/trash" class="bg-gray-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 flex items-center justify-center rounded-2xl hover:bg-gray-300 transition-all" title="إلغاء البحث">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </a>
+                        <% } %>
+                    </form>
+                </div>
+
+                <div class="bg-white dark:bg-pixelCard rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-red-100/50 dark:border-red-900/10 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-red-50/30 dark:bg-red-500/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-red-50 dark:border-red-900/10">
+                                    <th class="p-6">اسم المنتج</th>
+                                    <th class="p-6">الباركود</th>
+                                    <th class="p-6 text-center">تاريخ الحذف</th>
+                                    <th class="p-6 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 dark:divide-slate-800">
+                                <% if (products.length > 0) { %>
+                                    <% products.forEach(product => { %>
+                                        <tr class="hover:bg-red-50/10 dark:hover:bg-red-500/5 transition-colors group">
+                                            <td class="p-6">
+                                                <div class="font-bold text-lg group-hover:text-red-500 transition-colors"><%= product.name %></div>
+                                            </td>
+                                            <td class="p-6">
+                                                <span class="font-mono text-sm text-slate-400 bg-gray-50 dark:bg-slate-900 px-2 py-1 rounded-md border border-gray-100 dark:border-slate-800">
+                                                    <%= product.barcode %>
+                                                </span>
+                                            </td>
+                                            <td class="p-6 text-center text-slate-500 text-sm font-medium italic">
+                                                <%= new Date(product.deletedAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) %>
+                                            </td>
+                                            <td class="p-6">
+                                                <div class="flex justify-center">
+                                                    <button onclick="restoreProduct('<%= product.id %>')" 
+                                                        class="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 active:scale-95">
+                                                        <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
+                                                        استعادة الآن
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="4" class="p-20 text-center">
+                                            <div class="flex flex-col items-center gap-3 opacity-30">
+                                                <i data-lucide="inbox" class="w-16 h-16"></i>
+                                                <p class="text-xl font-bold italic">
+                                                    <%= (typeof searchQuery !== 'undefined' && searchQuery) ? 'لا توجد نتائج تطابق بحثك في السلة' : 'سلة المحذوفات فارغة تماماً' %>
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <%- include('partials/footer') %>
+        </main>
+    </div>
+
+    <script>
+
+        lucide.createIcons();
+
+
+
+        async function restoreProduct(id) {
+
+            if (!confirm('هل أنت متأكد من رغبتك في إعادة هذا المنتج إلى قائمة البيع النشطة؟')) return;
+
+
+
+            try {
+
+                const response = await fetch(`/products/restore/${id}`, {
+
+                    method: 'POST',
+
+                    headers: { 'Content-Type': 'application/json' }
+
+                });
+
+
+
+                const result = await response.json();
+
+
+
+                if (result.success) {
+
+                    // تأثير بصري قبل التحديث
+
+                    window.location.reload();
+
+                } else {
+
+                    alert('عذراً، حدث خطأ أثناء الاستعادة: ' + result.message);
+
+                }
+
+            } catch (error) {
+
+                console.error('Restore Error:', error);
+
+                alert('فشل الاتصال بالسيرفر، يرجى المحاولة لاحقاً.');
+
+            }
+
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body class="bg-gray-50 text-slate-900 dark:bg-pixelDark dark:text-slate-100 min-h-screen">
+
+    <div class="flex">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 overflow-x-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="p-6 space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-3xl font-bold font-pixel">لوحة الإحصائيات</h2>
+                </div>
+
+               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <%- include('partials/statCard', { title: 'إجمالي المبيعات', value: stats.totalSales, icon: 'dollar-sign', color: 'blue' }) %>
+    
+    <%- include('partials/statCard', { title: 'عدد الأصناف', value: stats.productsCount, icon: 'box', color: 'green' }) %>
+    
+    <%- include('partials/statCard', { title: 'نواقص المخزن', value: stats.lowStock, icon: 'alert-triangle', color: 'red' }) %>
+    
+    <%- include('partials/statCard', { title: 'ديون الزبائن', value: stats.totalDebt, icon: 'user-minus', color: 'purple' }) %>
+</div>
+
+                </div>
+        </main>
+    </div>
+
+    <%- include('partials/footer') %>

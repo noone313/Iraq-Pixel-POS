@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex">
+        <%- include('partials/sidebar') %>
+        <main class="flex-1 flex flex-col min-h-screen">
+            <%- include('partials/navbar') %>
+
+            <div class="flex-1 p-6 lg:p-12 flex flex-col items-center">
+                
+                <div class="w-full max-w-4xl flex flex-col items-center text-center mb-10">
+                    <div class="mb-4 p-3 <%= locals.product ? 'bg-amber-100 text-amber-600' : 'bg-pixelBlue/10 text-pixelBlue' %> rounded-2xl w-fit border border-current/5">
+                        <i data-lucide="<%= locals.product ? 'edit-3' : 'package-plus' %>" class="w-8 h-8"></i>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tight italic uppercase">
+                        <%= locals.product ? 'تعديل بيانات' : 'إضافة' %> <span class="text-pixelBlue">المنتج</span>
+                    </h1>
+                    <p class="text-slate-500 mt-2 font-medium">
+                        <%= locals.product ? 'تحديث معلومات المنتج: ' + product.name : 'أدخل بيانات المنتج الجديد بدقة في المستودع' %>
+                    </p>
+                </div>
+
+                <div class="w-full max-w-4xl bg-white dark:bg-pixelCard rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-blue-900/5 border border-gray-100 dark:border-slate-800">
+                    
+                    <form action="<%= locals.product ? '/products/edit/' + product.id : '/products/add' %>" method="POST" class="space-y-8">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold px-1 text-slate-600 dark:text-slate-400">اسم المنتج</label>
+                                <input type="text" name="name" required 
+                                    value="<%= locals.product ? product.name : '' %>"
+                                    class="w-full bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 p-4 rounded-2xl focus:ring-2 focus:ring-pixelBlue/20 outline-none transition-all font-bold">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold px-1 text-slate-600 dark:text-slate-400">الباركود</label>
+                                <div class="relative group">
+                                    <i data-lucide="scan-barcode" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-pixelBlue"></i>
+                                    <input type="text" name="barcode" required 
+                                        value="<%= locals.product ? product.barcode : '' %>"
+                                        class="w-full bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 p-4 pr-12 rounded-2xl focus:ring-2 focus:ring-pixelBlue/20 outline-none transition-all font-mono italic">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold px-1 text-slate-600 dark:text-slate-400">الصنف (Category)</label>
+                                <select name="CategoryId" required class="w-full bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-pixelBlue/20 transition-all appearance-none font-bold">
+                                    <option value="" disabled <%= !locals.product ? 'selected' : '' %>>اختر التصنيف...</option>
+                                    <% categories.forEach(cat => { %>
+                                        <option value="<%= cat.id %>" <%= locals.product && product.CategoryId == cat.id ? 'selected' : '' %>>
+                                            <%= cat.name %>
+                                        </option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold px-1 text-slate-600 dark:text-slate-400">وحدة القياس</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <% ['PCS', 'KG', 'BOX'].forEach(unit => { %>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="unitType" value="<%= unit %>" 
+                                                <%= (locals.product && product.unitType === unit) || (!locals.product && unit === 'PCS') ? 'checked' : '' %> 
+                                                class="hidden peer">
+                                            <div class="text-center p-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 peer-checked:bg-pixelBlue peer-checked:text-white transition-all font-bold text-sm">
+                                                <%= unit %>
+                                            </div>
+                                        </label>
+                                    <% }) %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-blue-50/50 dark:bg-blue-500/5 rounded-[2.5rem] border border-blue-100 dark:border-blue-500/10 shadow-inner">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500">سعر الشراء</label>
+                                    <input type="number" step="0.01" name="purchasePrice" required 
+                                        value="<%= locals.product ? product.purchasePrice : '' %>"
+                                        class="w-full bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 outline-none focus:border-pixelBlue transition-all font-bold">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500">سعر البيع</label>
+                                    <input type="number" step="0.01" name="salePrice" required 
+                                        value="<%= locals.product ? product.salePrice : '' %>"
+                                        class="w-full bg-white dark:bg-slate-900 p-4 rounded-xl border border-pixelBlue/30 text-pixelBlue font-black outline-none transition-all">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500">المخزون الحالي</label>
+                                    <input type="number" step="0.01" name="currentStock" required 
+                                        value="<%= locals.product ? product.currentStock : '0' %>"
+                                        class="w-full bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 outline-none transition-all font-bold">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500">حد الطلب</label>
+                                    <input type="number" step="0.01" name="minStockLevel" required 
+                                        value="<%= locals.product ? product.minStockLevel : '5' %>"
+                                        class="w-full bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-100 text-red-500 font-bold outline-none transition-all">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row gap-4 pt-4">
+                            <button type="submit" class="flex-1 bg-pixelBlue hover:bg-blue-600 text-white p-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3">
+                                <i data-lucide="<%= locals.product ? 'check-circle' : 'plus-circle' %>" class="w-6 h-6"></i>
+                                <%= locals.product ? 'تحديث بيانات المنتج' : 'تأكيد إضافة المنتج' %>
+                            </button>
+                            <a href="/products" class="px-10 py-5 bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold hover:bg-gray-200 transition-all text-center">
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <%- include('partials/footer') %>
+        </main>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

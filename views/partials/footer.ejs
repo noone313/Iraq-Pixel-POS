@@ -1,0 +1,99 @@
+<footer class="mt-12 border-t border-gray-200 dark:border-slate-800 bg-white/50 dark:bg-pixelDark/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-pixelBlue">
+                    <i data-lucide="layout-grid" class="w-6 h-6"></i>
+                    <span class="text-xl font-bold tracking-tight uppercase">Pixel <span class="text-slate-400">Iraq</span></span>
+                </div>
+                <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    نظام الإدارة المتكامل والأول من نوعه في العراق لتسهيل عمليات البيع والمخزون بأحدث التقنيات البرمجية.
+                </p>
+            </div>
+
+            <div>
+                <h5 class="font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-widest text-xs">وصول سريع</h5>
+                <ul class="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+                    <li><a href="/" class="hover:text-pixelBlue transition-colors flex items-center gap-2"><i data-lucide="chevron-left" class="w-4 h-4"></i> لوحة التحكم</a></li>
+                    <li><a href="/support" class="hover:text-pixelBlue transition-colors flex items-center gap-2"><i data-lucide="chevron-left" class="w-4 h-4"></i> الدعم الفني</a></li>
+                    <li><a href="/updates" class="hover:text-pixelBlue transition-colors flex items-center gap-2"><i data-lucide="chevron-left" class="w-4 h-4"></i> سجل التحديثات</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-widest text-xs">حالة النظام</h5>
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-sm text-slate-500 dark:text-slate-400">الخادم متصل (Online)</span>
+                    </div>
+                    <div class="text-xs text-slate-400">
+                        <p>الإصدار: v1.0.4 - Pixel Iraq</p>
+                        <p>آخر مزامنة: <%= new Date().toLocaleTimeString('ar-IQ') %></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-gray-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-xs text-slate-400 text-center md:text-right">
+                © <%= new Date().getFullYear() %> Pixel Iraq Software. جميع الحقوق محفوظة لشركة بكسل العراق.
+            </p>
+            <div class="flex gap-4">
+                <a href="#" class="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-400 hover:text-pixelBlue transition-all">
+                    <i data-lucide="facebook" class="w-4 h-4"></i>
+                </a>
+                <a href="#" class="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-400 hover:text-pixelBlue transition-all">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                </a>
+                <a href="#" class="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-400 hover:text-pixelBlue transition-all">
+                    <i data-lucide="phone" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // تهيئة الأيقونات
+    lucide.createIcons();
+
+    // منطق تبديل الثيم الموحد
+    const toggleBtn = document.getElementById('theme-toggle');
+    if(toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('mobile-menu-button');
+    const sidebar = document.getElementById('main-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (btn && sidebar && overlay) {
+        // دالة التبديل
+        const toggleMenu = () => {
+            // إذا كان الكلاس موجوداً سيحذفه (يظهر المنيو)، وإذا كان محذوفاً سيضيفه (يختفي المنيو)
+            sidebar.classList.toggle('translate-x-full');
+            
+            // إظهار أو إخفاء التظليل الخلفي
+            overlay.classList.toggle('hidden');
+        };
+
+        // عند الضغط على زر البركر
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // لمنع تداخل الأحداث
+            toggleMenu();
+        });
+
+        // إغلاق المنيو عند الضغط في أي مكان خارج السايدبار (على التظليل)
+        overlay.addEventListener('click', toggleMenu);
+    }
+});
+</script>
+</body>
+</html>

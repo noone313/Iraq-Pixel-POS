@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex">
+        <%- include('partials/sidebar') %>
+        <main class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="flex-1 p-6 lg:p-12 flex flex-col items-center">
+                
+                <div class="w-full max-w-4xl flex flex-col items-center text-center mb-12">
+                    <div class="mb-4 p-3 bg-pixelBlue/10 text-pixelBlue rounded-2xl w-fit border border-pixelBlue/5">
+                        <i data-lucide="users" class="w-8 h-8"></i>
+                    </div>
+
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tight italic uppercase leading-none">
+                        إدارة <span class="text-pixelBlue">الموظفين</span>
+                    </h1>
+                    
+                    <p class="text-slate-500 dark:text-slate-400 mt-3 font-medium text-lg max-w-md">
+                        عرض والتحكم في صلاحيات الوصول لموظفي نظام بكسل العراق
+                    </p>
+
+                    <div class="mt-8">
+                        <a href="/register" class="flex items-center gap-2 bg-pixelBlue hover:bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 w-fit">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                            إضافة موظف جديد
+                        </a>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-5xl">
+                    <div class="bg-white dark:bg-pixelCard rounded-[2.5rem] border border-gray-200 dark:border-slate-800 overflow-hidden shadow-2xl shadow-blue-900/5">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800 text-center">
+                                        <th class="p-6 font-bold text-sm text-slate-500 text-right">الموظف</th>
+                                        <th class="p-6 font-bold text-sm text-slate-500">اسم المستخدم</th>
+                                        <th class="p-6 font-bold text-sm text-slate-500">الصلاحية</th>
+                                        <th class="p-6 font-bold text-sm text-slate-500">الحالة</th>
+                                        <th class="p-6 font-bold text-sm text-slate-500">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                                    <% users.forEach(user => { %>
+                                    <tr class="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors text-center">
+                                        <td class="p-6 text-right">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-pixelBlue/10 text-pixelBlue flex items-center justify-center font-bold">
+                                                    <%= user.fullName.charAt(0) %>
+                                                </div>
+                                                <span class="font-bold text-slate-700 dark:text-slate-200"><%= user.fullName %></span>
+                                            </div>
+                                        </td>
+                                        <td class="p-6 font-mono text-sm"><%= user.username %></td>
+                                        <td class="p-6">
+                                            <span class="px-3 py-1 rounded-lg text-xs font-bold <%= user.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600' %>">
+                                                <%= user.role %>
+                                            </span>
+                                        </td>
+                                        <td class="p-6">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <div class="w-2 h-2 rounded-full <%= user.isActive ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500' %>"></div>
+                                                <span class="text-sm <%= user.isActive ? 'text-green-600' : 'text-red-600' %> font-medium">
+                                                    <%= user.isActive ? 'نشط' : 'معطل' %>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="p-6">
+                                            <div class="flex items-center justify-center gap-3">
+                                                <a href="/update-user/<%= user.id %>" class="p-2.5 text-slate-400 hover:text-pixelBlue hover:bg-pixelBlue/5 rounded-xl transition-all border border-transparent hover:border-pixelBlue/10">
+                                                    <i data-lucide="edit-3" class="w-5 h-5"></i>
+                                                </a>
+                                                <button onclick="handleDelete('<%= user.id %>', '<%= user.fullName %>')" 
+                                                        class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-500/10">
+                                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <%- include('partials/footer') %>
+        </main>
+    </div>
+
+    <script>
+        // دالة الحذف Fetch
+        async function handleDelete(userId, userName) {
+            if (!confirm(`هل أنت متأكد من حذف الموظف (${userName})؟`)) return;
+
+            try {
+                const response = await fetch(`/delete-user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload(); 
+                } else {
+                    alert('خطأ: ' + result.message);
+                }
+            } catch (error) {
+                alert('حدث خطأ في الاتصال بالسيرفر');
+            }
+        }
+    </script>
+</body>
+</html>

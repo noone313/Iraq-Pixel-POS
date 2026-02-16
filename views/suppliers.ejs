@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .pixel-card { background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); transition: all 0.3s ease; }
+        .dark .pixel-card { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); }
+        .custom-table tr:hover { background-color: rgba(59, 130, 246, 0.05); }
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex h-screen">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="p-6 overflow-y-auto custom-scroll">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-black italic flex items-center gap-3">
+                        <i data-lucide="users" class="text-blue-600 w-8 h-8"></i>
+                        إدارة الموردين
+                    </h1>
+                    <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-5 h-5"></i> مورد جديد
+                    </button>
+                </div>
+
+                <!-- بطاقات الإحصائيات السريعة -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">إجمالي الموردين</p>
+                                <p class="text-3xl font-black mt-2"><%= totalCount || 0 %></p>
+                            </div>
+                            <div class="bg-blue-100 dark:bg-blue-500/10 p-4 rounded-2xl">
+                                <i data-lucide="users" class="w-8 h-8 text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">الموردين المدينين</p>
+                                <p class="text-3xl font-black mt-2"><%= suppliers.filter(s => s.currentDebt > 0).length %></p>
+                            </div>
+                            <div class="bg-yellow-100 dark:bg-yellow-500/10 p-4 rounded-2xl">
+                                <i data-lucide="alert-circle" class="w-8 h-8 text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">إجمالي الديون</p>
+                                <p class="text-3xl font-black mt-2 text-red-500">
+                                    <%= suppliers.reduce((sum, s) => sum + parseFloat(s.currentDebt || 0), 0).toLocaleString() %>
+                                </p>
+                            </div>
+                            <div class="bg-red-100 dark:bg-red-500/10 p-4 rounded-2xl">
+                                <i data-lucide="credit-card" class="w-8 h-8 text-red-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- شريط البحث والفلترة -->
+                <div class="grid grid-cols-12 gap-6 mb-6">
+                    <div class="col-span-12 md:col-span-6">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="searchInput" placeholder="بحث عن مورد..." class="w-full pr-12 pl-4 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <select id="debtFilter" class="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                            <option value="all">جميع الموردين</option>
+                            <option value="debt">المدينين فقط</option>
+                            <option value="no-debt">بدون ديون</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- جدول الموردين -->
+                <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right custom-table">
+                            <thead>
+                                <tr class="text-slate-400 text-sm font-bold italic border-b border-slate-100 dark:border-slate-800">
+                                    <th class="py-4 px-2">#ID</th>
+                                    <th class="py-4 px-2">اسم المورد</th>
+                                    <th class="py-4 px-2 text-center">الدين الحالي</th>
+                                    <th class="py-4 px-2 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliersTable">
+                                <% if (suppliers && suppliers.length > 0) { %>
+                                    <% suppliers.forEach(s => { %>
+                                    <tr class="border-b border-slate-50 dark:border-slate-800/50 transition-all supplier-row" data-id="<%= s.id %>" data-name="<%= s.name.toLowerCase() %>" data-debt="<%= s.currentDebt %>">
+    <td class="py-4 px-2 text-slate-400 font-mono text-xs">#<%= s.id %></td>
+    <td class="py-4 px-2 font-black text-slate-700 dark:text-slate-200"><%= s.name %></td>
+    <td class="py-4 px-2 text-center font-bold <%= parseFloat(s.currentDebt) > 0 ? 'text-red-500' : 'text-green-500' %>">
+        <%= parseFloat(s.currentDebt || 0).toLocaleString() %> د.ع
+        <% if(parseFloat(s.currentDebt) > 0) { %>
+            <button onclick='payDebt("<%= s.id %>", "<%= s.name %>", "<%= s.currentDebt %>")' 
+                class="mr-2 text-xs bg-green-100 dark:bg-green-500/20 text-green-600 px-2 py-1 rounded-full hover:bg-green-200">
+                <i data-lucide="dollar-sign" class="inline w-3 h-3"></i> تسديد
+            </button>
+        <% } %>
+    </td>
+    <td class="py-4 px-2 text-center">
+        <div class="flex justify-center gap-2">
+            <button onclick='editSupplier("<%= s.id %>", "<%= s.name %>")' 
+                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors" 
+                title="تعديل">
+                <i data-lucide="edit-3" class="w-5 h-5"></i>
+            </button>
+            <button onclick="deleteSupplier('<%= s.id %>', '<%= parseFloat(s.currentDebt) %>')" 
+                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" 
+                title="حذف">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="4" class="py-20 text-center opacity-30 italic font-bold">لا يوجد موردين حالياً</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <% if (totalPages > 1) { %>
+                    <div class="flex justify-between items-center mt-6">
+                        <p class="text-xs font-bold text-slate-400">إجمالي الموردين: <%= totalCount %></p>
+                        <div class="flex gap-1">
+                            <% if (currentPage > 1) { %>
+                                <a href="?page=<%= currentPage-1 %>" class="px-3 py-1 rounded-md font-bold bg-gray-100 dark:bg-slate-800 hover:bg-blue-100 transition-colors">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </a>
+                            <% } %>
+                            
+                            <% for(let i = 1; i <= totalPages; i++) { %>
+                                <a href="?page=<%= i %>" class="px-3 py-1 rounded-md font-bold <%= i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 hover:bg-blue-100' %>">
+                                    <%= i %>
+                                </a>
+                            <% } %>
+                            
+                            <% if (currentPage < totalPages) { %>
+                                <a href="?page=<%= currentPage+1 %>" class="px-3 py-1 rounded-md font-bold bg-gray-100 dark:bg-slate-800 hover:bg-blue-100 transition-colors">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </a>
+                            <% } %>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- مودال إضافة مورد جديد -->
+    <div id="addSupplierModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl max-w-md w-full mx-4">
+            <h2 class="text-2xl font-black mb-6 flex items-center gap-2">
+                <i data-lucide="user-plus" class="text-green-500"></i> إضافة مورد جديد
+            </h2>
+            <form id="addSupplierForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">اسم المورد</label>
+                    <input type="text" name="name" required class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">الدين الحالي (عليه/لك)</label>
+                    <input type="number" name="currentDebt" value="0" step="0.01" class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold text-blue-600">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="save"></i> حفظ
+                    </button>
+                    <button type="button" onclick="closeAddModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-slate-700 dark:text-slate-200 py-4 rounded-xl font-black transition-all">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال تعديل مورد -->
+    <div id="editSupplierModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl max-w-md w-full mx-4">
+            <h2 class="text-2xl font-black mb-6 flex items-center gap-2">
+                <i data-lucide="edit-3" class="text-blue-500"></i> تعديل مورد
+            </h2>
+            <form id="editSupplierForm" class="space-y-4">
+                <input type="hidden" name="id" id="editId">
+                <div>
+                    <label class="block text-sm font-bold mb-2">اسم المورد</label>
+                    <input type="text" name="name" id="editName" required class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black transition-all">
+                        تحديث
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-slate-700 dark:text-slate-200 py-4 rounded-xl font-black transition-all">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال تسديد دين -->
+    <div id="payDebtModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl max-w-md w-full mx-4">
+            <h2 class="text-2xl font-black mb-6 flex items-center gap-2">
+                <i data-lucide="dollar-sign" class="text-green-500"></i> تسديد دين
+            </h2>
+            <form id="payDebtForm" class="space-y-4">
+                <input type="hidden" name="id" id="payId">
+                <div>
+                    <label class="block text-sm font-bold mb-2">المورد: <span id="payName" class="text-blue-600"></span></label>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">المبلغ المتبقي: <span id="remainingDebt" class="text-red-500 font-black"></span></label>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">المبلغ المدفوع</label>
+                    <input type="number" name="amount" id="payAmount" required min="1" step="0.01" class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold text-green-600">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-black transition-all">
+                        تسديد
+                    </button>
+                    <button type="button" onclick="closePayModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-slate-700 dark:text-slate-200 py-4 rounded-xl font-black transition-all">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ==================== إدارة المودالات ====================
+        function openAddModal() {
+            document.getElementById('addSupplierModal').classList.remove('hidden');
+        }
+        function closeAddModal() {
+            document.getElementById('addSupplierModal').classList.add('hidden');
+        }
+        function openEditModal() {
+            document.getElementById('editSupplierModal').classList.remove('hidden');
+        }
+        function closeEditModal() {
+            document.getElementById('editSupplierModal').classList.add('hidden');
+        }
+        function openPayModal() {
+            document.getElementById('payDebtModal').classList.remove('hidden');
+        }
+        function closePayModal() {
+            document.getElementById('payDebtModal').classList.add('hidden');
+        }
+
+        // ==================== إضافة مورد ====================
+        document.getElementById('addSupplierForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const res = await fetch('/suppliers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.message || 'حدث خطأ');
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم بنجاح',
+                    text: 'تم إضافة المورد الجديد',
+                    timer: 1500
+                }).then(() => location.reload());
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: err.message || 'فشل الاتصال بالسيرفر'
+                });
+            }
+        });
+
+        // ==================== تعديل مورد ====================
+        window.editSupplier = function(id, name) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = name;
+            openEditModal();
+        };
+
+        document.getElementById('editSupplierForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('editName').value;
+
+            try {
+                const res = await fetch(`/suppliers/${id}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.message || 'حدث خطأ');
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التعديل',
+                    text: 'تم تحديث بيانات المورد بنجاح',
+                    timer: 1500
+                }).then(() => location.reload());
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: err.message || 'فشل التحديث'
+                });
+            }
+        });
+
+        // ==================== حذف مورد ====================
+        window.deleteSupplier = function(id, currentDebt) {
+            if (currentDebt > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'لا يمكن الحذف',
+                    text: `هذا المورد عليه ديون مستحقة: ${currentDebt.toLocaleString()} د.ع`,
+                    confirmButtonColor: '#3b82f6'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'هل أنت متأكد؟',
+                text: "سيتم حذف المورد نهائياً من النظام!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'نعم، احذف',
+                cancelButtonText: 'إلغاء'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch(`/suppliers/${id}/delete`, { 
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        
+                        if (!res.ok) {
+                            const error = await res.json();
+                            throw new Error(error.message || 'حدث خطأ');
+                        }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحذف!',
+                            text: 'تم حذف المورد بنجاح',
+                            timer: 1500
+                        }).then(() => location.reload());
+                    } catch (err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: err.message || 'لا يمكن حذف المورد حالياً'
+                        });
+                    }
+                }
+            });
+        };
+
+        // ==================== تسديد دين ====================
+        window.payDebt = function(id, name, debt) {
+            document.getElementById('payId').value = id;
+            document.getElementById('payName').textContent = name;
+            document.getElementById('remainingDebt').textContent = debt.toLocaleString() + ' د.ع';
+            document.getElementById('payAmount').value = debt;
+            document.getElementById('payAmount').max = debt;
+            openPayModal();
+        };
+
+        document.getElementById('payDebtForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('payId').value;
+            const amount = document.getElementById('payAmount').value;
+
+            try {
+                const res = await fetch(`/suppliers/${id}/pay`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.message || 'حدث خطأ');
+                }
+
+                const result = await res.json();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التسديد',
+                    text: result.message || 'تم تسديد المبلغ بنجاح',
+                    timer: 1500
+                }).then(() => location.reload());
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: err.message || 'فشل تسديد الدين'
+                });
+            }
+        });
+
+        // ==================== البحث والفلترة ====================
+        const searchInput = document.getElementById('searchInput');
+        const debtFilter = document.getElementById('debtFilter');
+        const rows = document.querySelectorAll('.supplier-row');
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filterValue = debtFilter.value;
+
+            rows.forEach(row => {
+                const name = row.dataset.name;
+                const debt = parseFloat(row.dataset.debt);
+                
+                let showBySearch = name.includes(searchTerm);
+                let showByDebt = true;
+                
+                if (filterValue === 'debt') showByDebt = debt > 0;
+                if (filterValue === 'no-debt') showByDebt = debt === 0;
+                
+                row.style.display = (showBySearch && showByDebt) ? '' : 'none';
+            });
+        }
+
+        searchInput.addEventListener('input', filterTable);
+        debtFilter.addEventListener('change', filterTable);
+
+        // ==================== إغلاق المودالات عند النقر خارجها ====================
+        window.onclick = function(event) {
+            if (event.target.classList.contains('fixed')) {
+                closeAddModal();
+                closeEditModal();
+                closePayModal();
+            }
+        };
+
+        // تهيئة الأيقونات
+        lucide.createIcons();
+    </script>
+</body>
+</html>

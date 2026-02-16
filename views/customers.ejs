@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .customer-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .customer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .debt-badge {
+            background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+            color: #ef4444;
+        }
+        .debt-zero {
+            background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex h-screen">
+        <%- include('partials/sidebar') %>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <%- include('partials/navbar') %>
+
+            <div class="p-8 overflow-y-auto custom-scroll">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black italic text-slate-800 dark:text-white flex items-center gap-3">
+                            <i data-lucide="users" class="text-blue-600 w-8 h-8"></i>
+                            إدارة العملاء
+                        </h1>
+                        <p class="text-slate-500 font-bold mt-1">إجمالي المسجلين: <%= customers.length %> عميل</p>
+                    </div>
+                    
+                    <button onclick="window.location.href='/customers/create'" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-5 h-5"></i>
+                        إضافة عميل جديد
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <% customers.forEach(customer => { %>
+                        <div class="customer-card bg-white dark:bg-pixelCard border border-gray-100 dark:border-slate-800 rounded-[2.5rem] p-6 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 opacity-5 dark:opacity-10 text-slate-900">
+                                <i data-lucide="user" class="w-24 h-24"></i>
+                            </div>
+
+                            <div class="relative z-10">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 font-black text-xl">
+                                        <%= customer.name.charAt(0) %>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800 dark:text-white"><%= customer.name %></h3>
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: #<%= customer.id.toString().padStart(4, '0') %></span>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div class="p-4 rounded-2xl <%= customer.currentDebt > 0 ? 'debt-badge' : 'debt-zero' %>">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-xs font-black uppercase">الدين الحالي</span>
+                                            <i data-lucide="<%= customer.currentDebt > 0 ? 'alert-circle' : 'check-circle' %>" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="text-2xl font-black tracking-tighter">
+                                                <%= parseFloat(customer.currentDebt).toLocaleString() %>
+                                            </span>
+                                            <small class="text-[10px] font-bold">د.ع</small>
+                                        </div>
+                                    </div>
+
+                                   <div class="flex gap-2">
+    <form action="/customers/delete/<%= customer.id %>" method="POST" class="flex-1" onsubmit="return confirm('هل أنت متأكد من حذف هذا الزبون نهائياً؟')">
+        <button type="submit" class="w-full bg-slate-50 dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-600 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-200/50">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            حذف الزبون
+        </button>
+    </form>
+    
+    <a href="/customers/edit/<%= customer.id %>" 
+       class="w-12 h-12 bg-slate-50 dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-slate-400 hover:text-amber-600 rounded-xl transition-all flex items-center justify-center border border-transparent hover:border-amber-200/50"
+       title="تعديل البيانات">
+        <i data-lucide="edit-3" class="w-4 h-4"></i>
+    </a>
+</div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+
+                    <% if (customers.length === 0) { %>
+                        <div class="col-span-full py-20 flex flex-col items-center justify-center opacity-30 italic">
+                            <i data-lucide="users-2" class="w-20 h-20 mb-4"></i>
+                            <p class="text-xl font-black">لا يوجد عملاء مسجلين حالياً</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

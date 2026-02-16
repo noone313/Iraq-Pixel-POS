@@ -1,0 +1,22 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Iraq | نظام الإدارة المتكامل</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: { extend: { colors: { pixelBlue: '#3b82f6', pixelDark: '#0f172a', pixelCard: '#1e293b' } } }
+    }
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+</script>
+<style>
+    body { font-family: 'Cairo', sans-serif; transition: all 0.3s ease; }
+    .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+    .dark .glass { background: rgba(30, 41, 59, 0.7); }
+</style>
