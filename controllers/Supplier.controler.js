@@ -1,4 +1,4 @@
-import { Supplier } from "../models/models.js";
+import { sequelize, Supplier, CashMovement, Debt } from "../models/models.js";
 import { Op } from "sequelize";
 
 // =============================================
@@ -168,86 +168,97 @@ export const updateSupplier = async (req, res, next) => {
 // تسديد دين مورد
 // =============================================
 export const paySupplierDebt = async (req, res, next) => {
+    const t = await sequelize.transaction(); // بدء المعاملة
+
     try {
-        const { id } = req.params;
-        const { amount } = req.body;
+        const { id } = req.params; // معرف المورد
+        const { amount, userId } = req.body; 
 
-        // التحقق من وجود المبلغ
-        if (!amount) {
-            const error = new Error("المبلغ المدفوع مطلوب");
-            error.status = 400;
-            return next(error);
-        }
-
-        // التحقق من صحة المبلغ
-        if (amount <= 0) {
-            const error = new Error("المبلغ المدفوع يجب أن يكون أكبر من صفر");
-            error.status = 400;
-            return next(error);
-        }
-
-        // التحقق من وجود المورد
-        const supplier = await Supplier.findByPk(id);
-        if (!supplier) {
-            const error = new Error("المورد غير موجود في النظام");
-            error.status = 404;
-            return next(error);
-        }
-
-        const currentDebt = parseFloat(supplier.currentDebt);
+        // 1. التحقق من المدخلات
         const paymentAmount = parseFloat(amount);
-
-        // التحقق من عدم وجود ديون
-        if (currentDebt === 0) {
-            const error = new Error("لا يوجد ديون مستحقة على هذا المورد");
-            error.status = 400;
-            return next(error);
+        if (!paymentAmount || paymentAmount <= 0) {
+            throw { status: 400, message: "المبلغ المدفوع يجب أن يكون أكبر من صفر" };
         }
 
-        // التحقق من أن المبلغ لا يتجاوز الدين
-        if (currentDebt < paymentAmount) {
-            const error = new Error(`المبلغ المدخل (${paymentAmount.toLocaleString()}) أكبر من الدين المستحق (${currentDebt.toLocaleString()})`);
-            error.status = 400;
-            return next(error);
+        // 2. التحقق من وجود المورد وجلب دينه الحالي
+        const supplier = await Supplier.findByPk(id, { transaction: t });
+        if (!supplier) {
+            throw { status: 404, message: "المورد غير موجود" };
         }
 
-        const newDebt = currentDebt - paymentAmount;
-        
-        await supplier.update({
-            currentDebt: newDebt
+        const currentTotalDebt = parseFloat(supplier.currentDebt);
+        if (currentTotalDebt < paymentAmount) {
+            throw { status: 400, message: `المبلغ أكبر من إجمالي الدين المستحق (${currentTotalDebt.toLocaleString()})` };
+        }
+
+        // 3. جلب الديون الفردية المرتبطة بهذا المورد (التي لم تدفع بالكامل)
+        // مرتبة من الأقدم إلى الأحدث (FIFO)
+        const pendingDebts = await Debt.findAll({
+            where: {
+                supplierId: id,
+                type: 'SUPPLIER',
+                status: ['PENDING', 'PARTIAL']
+            },
+            order: [['createdAt', 'ASC']],
+            transaction: t
         });
 
-        // هنا يمكن إضافة حركة نقدية (CashMovement) لتسجيل عملية الدفع
-        // await CashMovement.create({ 
-        //     type: 'OUT',
-        //     amount: paymentAmount,
-        //     category: 'SUPPLIER_PAYMENT',
-        //     referenceId: supplier.id,
-        //     referenceType: 'Supplier',
-        //     description: `تسديد دين للمورد: ${supplier.name}`,
-        //     userId: req.user.id 
-        // });
+        let remainingToDistribute = paymentAmount;
 
-        res.json({ 
-            success: true, 
-            message: `تم تسديد مبلغ ${paymentAmount.toLocaleString()} د.ع بنجاح`,
+        // 4. توزيع المبلغ على سجلات الديون الفردية
+        for (const debt of pendingDebts) {
+            if (remainingToDistribute <= 0) break;
+
+            const debtRemaining = parseFloat(debt.remainingAmount);
+
+            if (remainingToDistribute >= debtRemaining) {
+                // تسديد هذا الدين بالكامل
+                remainingToDistribute -= debtRemaining;
+                await debt.update({
+                    remainingAmount: 0,
+                    status: 'PAID'
+                }, { transaction: t });
+            } else {
+                // تسديد جزء من هذا الدين
+                await debt.update({
+                    remainingAmount: debtRemaining - remainingToDistribute,
+                    status: 'PARTIAL'
+                }, { transaction: t });
+                remainingToDistribute = 0;
+            }
+        }
+
+        // 5. تحديث إجمالي الدين في جدول المورد
+        const newTotalDebt = currentTotalDebt - paymentAmount;
+        await supplier.update({ currentDebt: newTotalDebt }, { transaction: t });
+
+        // 6. تسجيل الحركة في جدول النقدية (CashMovement)
+        await CashMovement.create({
+            type: 'OUT',
+            amount: paymentAmount,
+            category: 'DEBT_PAYMENT',
+            referenceId: supplier.id, // ربط مباشر بالمورد أو بأول سجل دين حسب رغبتك
+            referenceType: 'Supplier',
+            userId: userId || 1 
+        }, { transaction: t });
+
+        // إتمام العملية
+        await t.commit();
+
+        res.json({
+            success: true,
+            message: `تم تسديد ${paymentAmount.toLocaleString()} د.ع بنجاح`,
             data: {
-                supplierId: supplier.id,
                 supplierName: supplier.name,
-                previousDebt: currentDebt,
-                paidAmount: paymentAmount,
-                remainingDebt: newDebt
+                paid: paymentAmount,
+                remainingDebt: newTotalDebt
             }
         });
+
     } catch (error) {
-        // إذا كان الخطأ من النوع الذي أنشأناه بأنفسنا، نمرره كما هو
-        if (error.status) {
-            return next(error);
-        }
-        // وإلا ننشئ خطأ عام
-        const err = new Error("حدث خطأ أثناء تسديد الدين");
-        err.status = 500;
-        return next(err);
+        await t.rollback();
+        console.error("Critical Payment Error:", error);
+        next(error.status ? error : { status: 500, message: "خطأ داخلي أثناء معالجة الدفع" });
     }
 };
 

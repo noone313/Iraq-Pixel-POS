@@ -3,21 +3,10 @@
 <head>
     <%- include('partials/head') %>
     <style>
-        .customer-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .customer-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        .debt-badge {
-            background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
-            color: #ef4444;
-        }
-        .debt-zero {
-            background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
-            color: #22c55e;
-        }
+        .pixel-card { background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); transition: all 0.3s ease; }
+        .dark .pixel-card { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); }
+        .custom-table tr:hover { background-color: rgba(59, 130, 246, 0.05); }
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
@@ -27,85 +16,267 @@
         <main class="flex-1 flex flex-col overflow-hidden">
             <%- include('partials/navbar') %>
 
-            <div class="p-8 overflow-y-auto custom-scroll">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-                    <div>
-                        <h1 class="text-3xl font-black italic text-slate-800 dark:text-white flex items-center gap-3">
-                            <i data-lucide="users" class="text-blue-600 w-8 h-8"></i>
-                            إدارة العملاء
-                        </h1>
-                        <p class="text-slate-500 font-bold mt-1">إجمالي المسجلين: <%= customers.length %> عميل</p>
-                    </div>
-                    
-                    <button onclick="window.location.href='/customers/create'" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-5 h-5"></i>
-                        إضافة عميل جديد
+            <div class="p-6 overflow-y-auto custom-scroll">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-black italic flex items-center gap-3">
+                        <i data-lucide="users" class="text-blue-600 w-8 h-8"></i>
+                        إدارة العملاء
+                    </h1>
+                    <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-5 h-5"></i> عميل جديد
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <% customers.forEach(customer => { %>
-                        <div class="customer-card bg-white dark:bg-pixelCard border border-gray-100 dark:border-slate-800 rounded-[2.5rem] p-6 relative overflow-hidden">
-                            <div class="absolute -right-4 -top-4 opacity-5 dark:opacity-10 text-slate-900">
-                                <i data-lucide="user" class="w-24 h-24"></i>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">إجمالي العملاء</p>
+                                <p class="text-3xl font-black mt-2"><%= customers.length %></p>
                             </div>
-
-                            <div class="relative z-10">
-                                <div class="flex items-center gap-4 mb-6">
-                                    <div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 font-black text-xl">
-                                        <%= customer.name.charAt(0) %>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-lg font-black text-slate-800 dark:text-white"><%= customer.name %></h3>
-                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: #<%= customer.id.toString().padStart(4, '0') %></span>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-4">
-                                    <div class="p-4 rounded-2xl <%= customer.currentDebt > 0 ? 'debt-badge' : 'debt-zero' %>">
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-xs font-black uppercase">الدين الحالي</span>
-                                            <i data-lucide="<%= customer.currentDebt > 0 ? 'alert-circle' : 'check-circle' %>" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="mt-1">
-                                            <span class="text-2xl font-black tracking-tighter">
-                                                <%= parseFloat(customer.currentDebt).toLocaleString() %>
-                                            </span>
-                                            <small class="text-[10px] font-bold">د.ع</small>
-                                        </div>
-                                    </div>
-
-                                   <div class="flex gap-2">
-    <form action="/customers/delete/<%= customer.id %>" method="POST" class="flex-1" onsubmit="return confirm('هل أنت متأكد من حذف هذا الزبون نهائياً؟')">
-        <button type="submit" class="w-full bg-slate-50 dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-600 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-200/50">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-            حذف الزبون
-        </button>
-    </form>
-    
-    <a href="/customers/edit/<%= customer.id %>" 
-       class="w-12 h-12 bg-slate-50 dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-slate-400 hover:text-amber-600 rounded-xl transition-all flex items-center justify-center border border-transparent hover:border-amber-200/50"
-       title="تعديل البيانات">
-        <i data-lucide="edit-3" class="w-4 h-4"></i>
-    </a>
-</div>
-                                </div>
+                            <div class="bg-blue-100 dark:bg-blue-500/10 p-4 rounded-2xl">
+                                <i data-lucide="users" class="w-8 h-8 text-blue-600"></i>
                             </div>
                         </div>
-                    <% }) %>
-
-                    <% if (customers.length === 0) { %>
-                        <div class="col-span-full py-20 flex flex-col items-center justify-center opacity-30 italic">
-                            <i data-lucide="users-2" class="w-20 h-20 mb-4"></i>
-                            <p class="text-xl font-black">لا يوجد عملاء مسجلين حالياً</p>
+                    </div>
+                    
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">العملاء المدينين</p>
+                                <p class="text-3xl font-black mt-2"><%= customers.filter(c => parseFloat(c.currentDebt) > 0).length %></p>
+                            </div>
+                            <div class="bg-yellow-100 dark:bg-yellow-500/10 p-4 rounded-2xl">
+                                <i data-lucide="alert-circle" class="w-8 h-8 text-yellow-600"></i>
+                            </div>
                         </div>
-                    <% } %>
+                    </div>
+                    
+                    <div class="pixel-card p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm font-bold">إجمالي الديون</p>
+                                <p class="text-3xl font-black mt-2 text-red-500">
+                                    <%= customers.reduce((sum, c) => sum + parseFloat(c.currentDebt || 0), 0).toLocaleString() %>
+                                </p>
+                            </div>
+                            <div class="bg-red-100 dark:bg-red-500/10 p-4 rounded-2xl">
+                                <i data-lucide="credit-card" class="w-8 h-8 text-red-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-6 mb-6">
+                    <div class="col-span-12 md:col-span-6">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="searchInput" placeholder="بحث عن عميل بالاسم..." class="w-full pr-12 pl-4 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                        </div>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <select id="debtFilter" class="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                            <option value="all">جميع الحالات</option>
+                            <option value="debt">عليهم ديون مستحقة</option>
+                            <option value="no-debt">رصيد صفر</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pixel-card rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right custom-table">
+                            <thead>
+                                <tr class="text-slate-400 text-sm font-bold italic border-b border-slate-100 dark:border-slate-800">
+                                    <th class="py-5 px-6">المعرف</th>
+                                    <th class="py-5 px-6">الاسم الكامل</th>
+                                    <th class="py-5 px-6 text-center">المبلغ المتبقي (د.ع)</th>
+                                    <th class="py-5 px-6 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTable">
+                                <% if (customers && customers.length > 0) { %>
+                                    <% customers.forEach(c => { %>
+                                    <tr class="border-b border-slate-50 dark:border-slate-800/50 customer-row" 
+                                        data-name="<%= c.name.toLowerCase() %>" 
+                                        data-debt="<%= c.currentDebt %>">
+                                        <td class="py-4 px-6 text-slate-400 font-mono text-xs">#<%= c.id.toString().padStart(4, '0') %></td>
+                                        <td class="py-4 px-6 font-black text-slate-700 dark:text-slate-200"><%= c.name %></td>
+                                        <td class="py-4 px-6 text-center">
+                                            <div class="flex flex-col items-center">
+                                                <span class="font-bold <%= parseFloat(c.currentDebt) > 0 ? 'text-red-500' : 'text-green-500' %>">
+                                                    <%= parseFloat(c.currentDebt || 0).toLocaleString() %>
+                                                </span>
+                                                <% if(parseFloat(c.currentDebt) > 0) { %>
+                                                    <button onclick='payDebt("<%= c.id %>", "<%= c.name %>", "<%= c.currentDebt %>")' 
+                                                        class="mt-1 text-[10px] bg-green-100 dark:bg-green-500/20 text-green-600 px-3 py-1 rounded-full hover:bg-green-200 transition-all font-black">
+                                                        <i data-lucide="hand-coins" class="inline w-3 h-3 ml-1"></i> تسديد سريع
+                                                    </button>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-6 text-center">
+                                            <div class="flex justify-center gap-2">
+                                                <a href="/customers/edit/<%= c.id %>" class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors">
+                                                    <i data-lucide="edit-3" class="w-5 h-5"></i>
+                                                </a>
+                                                <button onclick="deleteCustomer('<%= c.id %>', '<%= parseFloat(c.currentDebt) %>')" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="4" class="py-20 text-center opacity-30 italic font-bold">لا يوجد عملاء مضافين حالياً</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <div id="addCustomerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl max-w-md w-full mx-4 border border-white/10">
+            <h2 class="text-2xl font-black mb-6 flex items-center gap-2">
+                <i data-lucide="user-plus" class="text-blue-500"></i> إضافة عميل جديد
+            </h2>
+            <form id="addCustomerForm" action="/customers/create" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">اسم العميل الثلاثي</label>
+                    <input type="text" name="name" required class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold focus:ring-2 focus:ring-blue-500 text-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">الدين الافتتاحي (إن وجد)</label>
+                    <input type="number" name="currentDebt" value="0" step="0.01" class="w-full p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border-none font-bold text-red-600 text-lg">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="save" class="w-5 h-5"></i> حفظ العميل
+                    </button>
+                    <button type="button" onclick="closeAddModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 py-4 rounded-xl font-black transition-all">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="payDebtModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl max-w-md w-full mx-4 border border-white/10">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-green-100 dark:bg-green-500/20 p-3 rounded-2xl">
+                    <i data-lucide="banknote" class="text-green-600 w-6 h-6"></i>
+                </div>
+                <h2 class="text-2xl font-black">استلام دفعة مالية</h2>
+            </div>
+            <form id="payDebtForm" class="space-y-4">
+                <input type="hidden" name="customerId" id="payId">
+                <div class="bg-blue-50 dark:bg-blue-500/5 p-4 rounded-2xl mb-4">
+                    <p class="text-sm font-bold opacity-70">اسم العميل:</p>
+                    <p id="payName" class="text-xl font-black text-blue-600"></p>
+                </div>
+                <div class="bg-red-50 dark:bg-red-500/5 p-4 rounded-2xl mb-4 text-center">
+                    <p class="text-xs font-bold opacity-70">إجمالي الدين الحالي</p>
+                    <p id="remainingDebt" class="text-2xl font-black text-red-500"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">المبلغ المستلم (د.ع)</label>
+                    <input type="number" id="payAmount" required min="1" step="0.01" class="w-full p-5 bg-gray-50 dark:bg-slate-800 rounded-2xl border-none font-black text-green-600 text-2xl text-center focus:ring-4 focus:ring-green-500/20">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="flex-2 bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-xl font-black transition-all flex items-center justify-center gap-2">
+                        تأكيد العملية
+                    </button>
+                    <button type="button" onclick="closePayModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 py-4 rounded-xl font-black">تراجع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // دالات التحكم بالمودالات
+        function openAddModal() { document.getElementById('addCustomerModal').classList.remove('hidden'); }
+        function closeAddModal() { document.getElementById('addCustomerModal').classList.add('hidden'); }
+        function openPayModal() { document.getElementById('payDebtModal').classList.remove('hidden'); }
+        function closePayModal() { document.getElementById('payDebtModal').classList.add('hidden'); }
+
+        // تسديد دين
+        window.payDebt = function(id, name, debt) {
+            document.getElementById('payId').value = id;
+            document.getElementById('payName').textContent = name;
+            document.getElementById('remainingDebt').textContent = parseFloat(debt).toLocaleString() + ' د.ع';
+            document.getElementById('payAmount').value = debt;
+            openPayModal();
+        };
+
+        document.getElementById('payDebtForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const customerId = document.getElementById('payId').value;
+            const amountPaid = document.getElementById('payAmount').value;
+            
+            try {
+                const res = await fetch(`/customers/pay-debt/${customerId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId, amountPaid, userId: 1 }) // userId سيؤخذ من السيشن لاحقاً
+                });
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'تمت العملية', text: 'تم تحديث رصيد العميل بنجاح', confirmButtonText: 'حسناً' })
+                    .then(() => location.reload());
+                } else {
+                    Swal.fire('خطأ', result.message, 'error');
+                }
+            } catch (err) { Swal.fire('خطأ', 'فشل في الاتصال بالخادم', 'error'); }
+        });
+
+        // حذف عميل
+        window.deleteCustomer = async function(id, debt) {
+            if (parseFloat(debt) > 0) {
+                return Swal.fire('لا يمكن الحذف', 'هذا العميل لديه ديون عالقة، يرجى تصفية الحساب أولاً', 'warning');
+            }
+
+            const result = await Swal.fire({
+                title: 'هل أنت متأكد؟',
+                text: "سيتم حذف بيانات العميل نهائياً",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، حذف',
+                cancelButtonText: 'إلغاء'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/customers/delete/${id}`, { method: 'POST' });
+                    if (res.ok) location.reload();
+                } catch (err) { Swal.fire('خطأ', 'حدث خطأ أثناء الحذف', 'error'); }
+            }
+        };
+
+        // البحث والفلترة
+        const searchInput = document.getElementById('searchInput');
+        const debtFilter = document.getElementById('debtFilter');
+        const rows = document.querySelectorAll('.customer-row');
+
+        function filterTable() {
+            const term = searchInput.value.toLowerCase();
+            const filter = debtFilter.value;
+            rows.forEach(row => {
+                const name = row.dataset.name;
+                const debt = parseFloat(row.dataset.debt);
+                const showBySearch = name.includes(term);
+                const showByDebt = filter === 'all' || (filter === 'debt' ? debt > 0 : debt === 0);
+                row.style.display = (showBySearch && showByDebt) ? '' : 'none';
+            });
+        }
+
+        searchInput.addEventListener('input', filterTable);
+        debtFilter.addEventListener('change', filterTable);
+
         lucide.createIcons();
     </script>
 </body>

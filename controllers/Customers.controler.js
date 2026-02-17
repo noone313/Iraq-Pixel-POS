@@ -1,4 +1,4 @@
-import { Customer } from "../models/models.js";
+import { sequelize, Customer, CashMovement, Debt } from "../models/models.js";
 
 // 1. عرض قائمة العملاء
 export const getCustomers = async (req, res, next) => {
@@ -98,5 +98,65 @@ export const deleteCustomer = async (req, res, next) => {
         res.redirect('/customers');
     } catch (e) {
         next(e);
+    }
+};
+
+
+
+
+
+export const payCustomerDebt = async (req, res, next) => {
+    const t = await sequelize.transaction();
+    try {
+        const { customerId, amountPaid, userId } = req.body;
+        const paymentAmount = parseFloat(amountPaid);
+
+        // 1. جلب العميل
+        const customer = await Customer.findByPk(customerId, { transaction: t });
+        if (!customer) throw new Error("العميل غير موجود");
+
+        // 2. تحديث رصيد العميل الكلي
+        customer.currentDebt = parseFloat(customer.currentDebt) - paymentAmount;
+        await customer.save({ transaction: t });
+
+        // 3. إنشاء حركة نقدية (Cash Movement)
+        await CashMovement.create({
+            type: 'IN',
+            amount: paymentAmount,
+            category: 'DEBT_PAYMENT',
+            userId: userId || null,
+            referenceId: customerId,
+            referenceType: 'Customer'
+        }, { transaction: t });
+
+        // 4. توزيع المبلغ على سجلات الديون (Debts Table) لتغيير حالتها
+        let remainingToDistribute = paymentAmount;
+        const pendingDebts = await Debt.findAll({
+            where: { customerId, type: 'CUSTOMER', status: ['PENDING', 'PARTIAL'] },
+            order: [['createdAt', 'ASC']],
+            transaction: t
+        });
+
+        for (let debt of pendingDebts) {
+            if (remainingToDistribute <= 0) break;
+
+            const amountNeeded = parseFloat(debt.remainingAmount);
+            if (remainingToDistribute >= amountNeeded) {
+                remainingToDistribute -= amountNeeded;
+                debt.remainingAmount = 0;
+                debt.status = 'PAID';
+            } else {
+                debt.remainingAmount = amountNeeded - remainingToDistribute;
+                debt.status = 'PARTIAL';
+                remainingToDistribute = 0;
+            }
+            await debt.save({ transaction: t });
+        }
+
+        await t.commit();
+        res.json({ success: true, message: "تم التسديد بنجاح" });
+    } catch (e) {
+        await t.rollback();
+        res.status(500).json({ success: false, message: e.message });
     }
 };

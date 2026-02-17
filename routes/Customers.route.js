@@ -4,7 +4,8 @@ import {
     createCustomer, 
     getCustomerCreatePage, 
     updateCustomer ,
-    deleteCustomer
+    deleteCustomer,
+    payCustomerDebt
 } from "../controllers/Customers.controler.js";
 
 export const CustomerRoute = Router();
@@ -30,3 +31,7 @@ CustomerRoute.post('/customers/update/:id', updateCustomer);
 
 // --- مسار الحذف (POST) ---
 CustomerRoute.post('/customers/delete/:id', deleteCustomer);
+
+
+// --- مسار دفع الدين (POST) ---
+CustomerRoute.post('/customers/pay-debt/:id', payCustomerDebt); 

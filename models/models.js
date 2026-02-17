@@ -1,7 +1,10 @@
 import { Sequelize, DataTypes, Op } from "sequelize";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 // 1. إعداد الاتصال بقاعدة البيانات مع تحسين أداء الـ Connection Pool
-const sequelize = new Sequelize('postgres://postgres:baqerali123@localhost:5432/pos', {
+const sequelize = new Sequelize(process.env.DB_CONNECTION_STRING, {
     logging: false, // تعطيل تسجيل الاستعلامات في الكونسول لزيادة الأداء
     timezone: '+03:00',
     pool: {
