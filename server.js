@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import { startServer } from './models/models.js';
 
 import { HomeRoute } from './routes/Home.route.js';
-import { dashboardRouter } from './routes/Report.route.js';
+import  dashboardRouter  from './routes/Report.route.js';
 import RegisterRoute from './routes/RegisterRoute.js';
 import { CategoryRoute } from './routes/Category.route.js';
 import ProductRoute from './routes/Product.route.js';
@@ -18,7 +18,11 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
-
+// في ملف app.js
+app.use((req, res, next) => {
+    res.locals.user = req.user || null;
+    next();
+});
 
 
 // --- . تسجيل المسارات (Routes) ---

@@ -1,231 +1,353 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <%- include('partials/head') %>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
-        body { font-family: 'Tajawal', sans-serif; transition: all 0.3s ease; }
+        /* ==================== أنماط مخصصة للبطاقات ==================== */
+        .report-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(203, 213, 225, 0.3);
+            position: relative;
+            overflow: hidden;
+            will-change: transform, border-color, box-shadow;
+        }
+
+        .dark .report-card {
+            border-color: rgba(51, 65, 85, 0.5);
+        }
+
+        .report-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: #3b82f6;
+            box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.25);
+        }
+
+        .icon-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        .report-card:hover .icon-wrapper {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .card-arrow {
+            opacity: 0;
+            transform: translateX(10px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .report-card:hover .card-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* تأثير الخلفية المتوهجة */
+        .report-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .report-card:hover::after {
+            opacity: 1;
+        }
+
+        /* أنماط للبطاقة المميزة */
+        .featured-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            transition: background 0.4s ease;
+        }
+
+        .dark .featured-card {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        /* تنسيق النصوص */
+        .section-title {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ==================== أنماط التحول السلس ==================== */
+        body, body * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+        }
+
+        /* تحسين أداء التحولات */
+        .bg-white, .dark\:bg-pixelCard, .bg-gray-50, .dark\:bg-pixelDark,
+        .border-slate-100, .dark\:border-slate-800,
+        .text-slate-900, .dark\:text-slate-100,
+        .text-slate-500, .dark\:text-slate-400,
+        .bg-blue-100, .dark\:bg-blue-500\/10 {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+        }
+
+        /* إخفاء شريط التمرير الجانبي */
+        .custom-scroll {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        /* ضمان سلاسة التمرير */
+        .smooth-scroll {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* تحسين مظهر النص في الوضع الليلي */
+        .dark .text-slate-400 {
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        .dark .text-slate-500 {
+            color: rgba(100, 116, 139, 0.9);
+        }
+
+        /* تأثيرات إضافية للتحول */
+        .theme-transition {
+            transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen theme-transition">
+    <div class="flex h-screen overflow-hidden">
+        <!-- الشريط الجانبي (بصمة Pixel) -->
+        <%- include('partials/sidebar') %>
 
-    <div class="min-h-screen p-4 md:p-6 lg:p-8">
-        
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-            <div class="text-center md:text-right">
-                <h1 class="text-3xl font-extrabold text-gray-900 leading-tight">Pixel POS <span class="text-blue-600">Dashboard</span></h1>
-                <p class="text-gray-500 mt-1">
-                    <i class="far fa-calendar-alt ml-1"></i> <%= data.currentDate %> | 
-                    <i class="far fa-clock ml-1"></i> <span id="live-time"><%= data.currentTime %></span>
-                </p>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="window.location.reload()" class="bg-white border border-gray-200 shadow-sm px-5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 transition flex items-center gap-2">
-                    <i class="fas fa-sync-alt"></i> تحديث
-                </button>
-                <a href="/dashboard/export/pdf" class="bg-blue-600 shadow-lg shadow-blue-200 px-5 py-2.5 rounded-xl text-white hover:bg-blue-700 transition flex items-center gap-2">
-                    <i class="fas fa-file-export"></i> تصدير PDF
-                </a>
-            </div>
-        </div>
+        <!-- المحتوى الرئيسي -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- شريط التنقل العلوي -->
+            <%- include('partials/navbar') %>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                <p class="text-sm font-medium text-gray-400 mb-1 relative">مبيعات اليوم</p>
-                <h3 class="text-2xl font-bold text-gray-800 relative tracking-tight"><%= data.quickStats.todaySales.toLocaleString() %> <span class="text-sm font-normal text-gray-400">د.ع</span></h3>
-                <div class="mt-4 flex items-center text-xs text-blue-600 font-bold bg-blue-50 w-fit px-2 py-1 rounded-lg">
-                    <i class="fas fa-arrow-up ml-1"></i> <%= data.quickStats.todayInvoices %> فواتير
-                </div>
-            </div>
+            <!-- محتوى الصفحة - مع إخفاء شريط التمرير -->
+            <div class="flex-1 overflow-y-auto smooth-scroll custom-scroll p-8" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <!-- رأس الصفحة -->
+                <div class="mb-12">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center theme-transition">
+                            <i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-black italic">
+                                <span class="bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    مركز التقارير
+                                </span>
+                            </h1>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 flex items-center gap-2 theme-transition">
+                                <i data-lucide="info" class="w-4 h-4"></i>
+                                اختر التقرير الذي ترغب بمراجعته من القائمة أدناه
+                            </p>
+                        </div>
+                    </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                <p class="text-sm font-medium text-gray-400 mb-1 relative">صافي الصندوق</p>
-                <h3 class="text-2xl font-bold text-gray-800 relative tracking-tight"><%= data.quickStats.cashNet.toLocaleString() %> <span class="text-sm font-normal text-gray-400">د.ع</span></h3>
-                <div class="mt-4 flex items-center text-xs text-green-600 font-bold bg-green-50 w-fit px-2 py-1 rounded-lg">
-                    وارد: <%= data.quickStats.cashIn.toLocaleString() %>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                <p class="text-sm font-medium text-gray-400 mb-1 relative">ديون العملاء</p>
-                <h3 class="text-2xl font-bold text-gray-800 relative tracking-tight text-red-600"><%= data.quickStats.customerDebts.toLocaleString() %> <span class="text-sm font-normal text-gray-400">د.ع</span></h3>
-                <div class="mt-4 flex items-center text-xs text-red-600 font-bold bg-red-50 w-fit px-2 py-1 rounded-lg">
-                    <i class="fas fa-users ml-1"></i> <%= data.quickStats.debtorsCount %> عملاء
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-yellow-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                <p class="text-sm font-medium text-gray-400 mb-1 relative">قيمة المخزون</p>
-                <h3 class="text-2xl font-bold text-gray-800 relative tracking-tight"><%= data.quickStats.inventoryValue.toLocaleString() %> <span class="text-sm font-normal text-gray-400">د.ع</span></h3>
-                <div class="mt-4 flex items-center text-xs text-yellow-600 font-bold bg-yellow-50 w-fit px-2 py-1 rounded-lg">
-                    <%= data.quickStats.lowStockCount %> منتجات منخفضة
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-gray-700 text-lg">تحليل المبيعات الأسبوعي</h3>
-                    <div class="flex gap-2">
-                        <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
-                        <span class="text-xs text-gray-400 font-medium italic">إجمالي الوارد اليومي</span>
+                    <!-- إحصائيات سريعة -->
+                    <div class="flex flex-wrap gap-4 mt-6">
+                        <div class="bg-white dark:bg-pixelCard px-5 py-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm theme-transition">
+                            <span class="text-xs font-bold text-slate-400 block mb-1">آخر تحديث</span>
+                            <span class="font-black text-sm flex items-center gap-2">
+                                <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+                                <%= new Date().toLocaleString('ar-IQ') %>
+                            </span>
+                        </div>
+                        <div class="bg-white dark:bg-pixelCard px-5 py-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm theme-transition">
+                            <span class="text-xs font-bold text-slate-400 block mb-1">عدد التقارير</span>
+                            <span class="font-black text-sm flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4 text-green-600"></i>
+                                5 تقارير متاحة
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="relative h-64">
-                    <canvas id="weeklyChart"></canvas>
-                </div>
-            </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
-                <h3 class="font-bold text-gray-700 text-lg mb-8 w-full">توزيع المبيعات</h3>
-                <div class="relative h-64 w-full flex justify-center">
-                    <canvas id="distributionChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-5 border-b border-gray-50 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-700 underline decoration-blue-500 decoration-2 underline-offset-8">آخر المبيعات</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right">
-                        <thead>
-                            <tr class="text-gray-400 text-xs font-bold uppercase tracking-wider bg-gray-50/50">
-                                <th class="px-6 py-4">المسلسل</th>
-                                <th class="px-6 py-4">العميل</th>
-                                <th class="px-6 py-4">المبلغ</th>
-                                <th class="px-6 py-4 text-center">الحالة</th>
-                                <th class="px-6 py-4">التوقيت</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <% data.recentSales.forEach(sale => { %>
-                            <tr class="hover:bg-blue-50/30 transition duration-150">
-                                <td class="px-6 py-4 font-mono text-sm text-gray-500"><%= sale.invoiceNumber %></td>
-                                <td class="px-6 py-4 font-bold text-gray-700"><%= sale.customer %></td>
-                                <td class="px-6 py-4 font-bold text-blue-600"><%= sale.total.toLocaleString() %></td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold <%= sale.type === 'CASH' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' %>">
-                                        <%= sale.type === 'CASH' ? 'نقدي' : 'آجل' %>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-xs text-gray-400"><%= sale.time %></td>
-                            </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-5 border-b border-gray-50 bg-gray-50/50">
-                    <h3 class="font-bold text-gray-700">الأكثر مبيعاً هذا الشهر</h3>
-                </div>
-                <div class="p-5 space-y-6">
-                    <% data.topProducts.forEach((product, index) => { %>
-                    <div class="flex items-center gap-4">
-                        <div class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 font-bold text-xs">
-                            <%= index + 1 %>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-gray-800 truncate w-32"><%= product.name %></p>
-                            <div class="w-full bg-gray-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                                <div class="bg-blue-500 h-full rounded-full" style="width: <%= Math.min(100, (product.quantity/data.quickStats.todayInvoices)*10) %>%"></div>
+                <!-- شبكة التقارير -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    
+                    <!-- تقرير المبيعات -->
+                    <a href="/reports/sales" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
+                        <div class="relative z-10">
+                            <div class="icon-wrapper bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-8 theme-transition">
+                                <i data-lucide="trending-up" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-blue-600 transition-colors theme-transition">
+                                تقرير المبيعات
+                            </h3>
+                            
+                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
+                                عرض تفصيلي للمبيعات اليومية، الأرباح، وإحصائيات فواتير الكاشير مع إمكانية التصفية حسب التاريخ.
+                            </p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
+                                    5 تقارير فرعية
+                                </span>
+                                <div class="card-arrow flex items-center gap-2 text-blue-600 font-black text-sm">
+                                    <span>عرض التقرير</span>
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-left">
-                            <p class="text-xs font-bold text-green-600"><%= product.revenue.toLocaleString() %></p>
-                            <p class="text-[10px] text-gray-400"><%= product.quantity %> قطعة</p>
+                    </a>
+
+                    <!-- تقرير المخزون -->
+                    <a href="/reports/inventory" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
+                        <div class="relative z-10">
+                            <div class="icon-wrapper bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 mb-8 theme-transition">
+                                <i data-lucide="boxes" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-orange-600 transition-colors theme-transition">
+                                حالة المخزون
+                            </h3>
+                            
+                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
+                                مراقبة كميات المواد، المنتجات منخفضة المخزون، تنبيهات النواقص، وقيمة المخزون الإجمالية.
+                            </p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
+                                    4 تقارير فرعية
+                                </span>
+                                <div class="card-arrow flex items-center gap-2 text-orange-600 font-black text-sm">
+                                    <span>عرض التقرير</span>
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <% }) %>
-                    <% if(data.topProducts.length === 0) { %>
-                        <p class="text-center text-gray-400 py-10">لا يوجد بيانات مبيعات كافية</p>
-                    <% } %>
+                    </a>
+
+                    <!-- تقرير الديون -->
+                    <a href="/reports/debts" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
+                        <div class="relative z-10">
+                            <div class="icon-wrapper bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 mb-8 theme-transition">
+                                <i data-lucide="credit-card" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-red-600 transition-colors theme-transition">
+                                الديون والحسابات
+                            </h3>
+                            
+                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
+                                كشف حسابات العملاء، مديونيات الموردين، جدول التسديد، وتقارير الديون الشهرية.
+                            </p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
+                                    3 تقارير فرعية
+                                </span>
+                                <div class="card-arrow flex items-center gap-2 text-red-600 font-black text-sm">
+                                    <span>عرض التقرير</span>
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- تقرير النقدية -->
+                    <a href="/reports/cash" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
+                        <div class="relative z-10">
+                            <div class="icon-wrapper bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 mb-8 theme-transition">
+                                <i data-lucide="wallet" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-green-600 transition-colors theme-transition">
+                                حركة الصندوق
+                            </h3>
+                            
+                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
+                                متابعة المقبوضات والمصروفات اليومية، صافي الوارد المالي، وتقارير الخزينة.
+                            </p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
+                                    3 تقارير فرعية
+                                </span>
+                                <div class="card-arrow flex items-center gap-2 text-green-600 font-black text-sm">
+                                    <span>عرض التقرير</span>
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- تقرير المشتريات -->
+                    <a href="/reports/purchases" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
+                        <div class="relative z-10">
+                            <div class="icon-wrapper bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 mb-8 theme-transition">
+                                <i data-lucide="truck" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-purple-600 transition-colors theme-transition">
+                                تقارير المشتريات
+                            </h3>
+                            
+                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
+                                تحليل المشتريات، فواتير الشراء، وأداء الموردين مع إحصائيات التوريد.
+                            </p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
+                                    3 تقارير فرعية
+                                </span>
+                                <div class="card-arrow flex items-center gap-2 text-purple-600 font-black text-sm">
+                                    <span>عرض التقرير</span>
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                   
                 </div>
-            </div>
-        </div>
+
+                <!-- تذييل الصفحة -->
+                <%- include('partials/footer') %>
+        </main>
     </div>
 
+    <!-- تضمين Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-        // تخزين البيانات في متغيرات JS لتجنب مشاكل الـ Syntax في المحرر
-        const labelsWeekly = <%- JSON.stringify(data.charts.weeklyLabels || []) %>;
-        const dataWeekly = <%- JSON.stringify(data.charts.weeklySales || []) %>;
-        const cashDist = <%= data.charts.distribution.cash || 0 %>;
-        const debtDist = <%= data.charts.distribution.debt || 0 %>;
+        // تهيئة الأيقونات
+        lucide.createIcons();
 
-        // مبيعات الأسبوع
-        const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
-        new Chart(ctxWeekly, {
-            type: 'line',
-            data: {
-                labels: labelsWeekly,
-                datasets: [{
-                    label: 'المبيعات',
-                    data: dataWeekly,
-                    borderColor: '#3b82f6',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#3b82f6',
-                    pointHoverRadius: 6,
-                    backgroundColor: (context) => {
-                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, 400);
-                        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
-                        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-                        return gradient;
-                    },
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        beginAtZero: true,
-                        grid: { borderDash: [5, 5] },
-                        ticks: { callback: (value) => value.toLocaleString() }
-                    }
+        // مراقبة تغيير الوضع (light/dark)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    // إضافة تأثير سلس عند تغيير الوضع
+                    document.body.style.transition = 'background-color 0.3s ease';
+                    setTimeout(() => {
+                        document.body.style.transition = '';
+                    }, 300);
                 }
-            }
+            });
         });
 
-        // توزيع المبيعات (Doughnut)
-        const ctxDist = document.getElementById('distributionChart').getContext('2d');
-        new Chart(ctxDist, {
-            type: 'doughnut',
-            data: {
-                labels: ['نقدي', 'آجل'],
-                datasets: [{
-                    data: [cashDist, debtDist],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    hoverOffset: 10,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '75%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-                }
-            }
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
         });
     </script>
 </body>

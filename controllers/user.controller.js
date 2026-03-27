@@ -161,7 +161,7 @@ async function Login(req, res, next) {
 
         // 3. إنشاء التوكن (JWT)
         const token = jwt.sign(
-            { id: user.id, role: user.role }, 
+            { userId: user.id, username: user.username, role: user.role }, 
              process.env.JWT_SECRET, 
             { expiresIn: '30d' } 
         );

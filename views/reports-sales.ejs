@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        /* ==================== أنماط التقارير ==================== */
+        .report-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(203, 213, 225, 0.3);
+        }
+
+        .dark .report-card {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            border-color: rgba(51, 65, 85, 0.5);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-input {
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .dark .filter-input {
+            background: #1e293b;
+            border-color: #334155;
+            color: white;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        .dark .table-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .table-row {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .dark .table-row {
+            border-bottom-color: #1e293b;
+        }
+
+        .table-row:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            height: 300px;
+            position: relative;
+        }
+
+        .dark .chart-container {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+        }
+
+        .dark .custom-scroll::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            body { background: white; }
+            .report-card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- الشريط الجانبي -->
+        <%- include('partials/sidebar') %>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- شريط التنقل العلوي -->
+            <%- include('partials/navbar') %>
+
+            <!-- محتوى الصفحة -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-6">
+                
+                <!-- رأس التقرير -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 no-print">
+                    <div>
+                        <h1 class="text-3xl font-black italic flex items-center gap-3">
+                            <i data-lucide="bar-chart-3" class="text-blue-600 w-8 h-8"></i>
+                            تقرير المبيعات التفصيلي
+                        </h1>
+                        <p class="text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            الفترة: <%= data.period.from %> - <%= data.period.to %>
+                        </p>
+                    </div>
+                    
+                    <!-- أزرار التحكم -->
+                    <div class="flex gap-3">
+                        <button onclick="window.print()" class="px-4 py-2 bg-white dark:bg-pixelCard rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                            <i data-lucide="printer" class="w-4 h-4 text-blue-600"></i>
+                            <span class="font-bold text-sm">طباعة</span>
+                        </button>
+                        <!-- <button onclick="exportReport('pdf')" class="px-4 py-2 bg-white dark:bg-pixelCard rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                            <i data-lucide="file-pdf" class="w-4 h-4 text-red-600"></i>
+                            <span class="font-bold text-sm">PDF</span>
+                        </button> -->
+                        <button onclick="exportReport('csv')" class="px-4 py-2 bg-white dark:bg-pixelCard rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-green-600"></i>
+                            <span class="font-bold text-sm">CSV</span>
+                        </button>
+                        
+                    </div>
+                </div>
+
+                <!-- فلتر التقرير مع إضافة فلتر الساعات -->
+                <div class="report-card mb-8 no-print">
+                    <form id="filterForm" class="grid grid-cols-1 md:grid-cols-7 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">من تاريخ</label>
+                            <input type="date" name="startDate" value="<%= data.filters.startDate %>" class="filter-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">إلى تاريخ</label>
+                            <input type="date" name="endDate" value="<%= data.filters.endDate %>" class="filter-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">من الساعة</label>
+                            <select name="shiftStart" class="filter-input w-full">
+                                <% for(let i = 0; i <= 23; i++) { %>
+                                <option value="<%= i %>" <%= data.filters.shiftStart == i ? 'selected' : '' %>><%= i %>:00</option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">إلى الساعة</label>
+                            <select name="shiftEnd" class="filter-input w-full">
+                                <% for(let i = 0; i <= 23; i++) { %>
+                                <option value="<%= i %>" <%= data.filters.shiftEnd == i ? 'selected' : '' %>><%= i %>:00</option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">نوع البيع</label>
+                            <select name="type" class="filter-input w-full">
+                                <option value="all" <%= data.filters.type === 'all' ? 'selected' : '' %>>جميع المبيعات</option>
+                                <option value="CASH" <%= data.filters.type === 'CASH' ? 'selected' : '' %>>نقدي</option>
+                                <option value="DEBT" <%= data.filters.type === 'DEBT' ? 'selected' : '' %>>آجل</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-2">الكاشير</label>
+                            <select name="cashierId" class="filter-input w-full">
+                                <option value="all">جميع الكاشيرات</option>
+                                <% data.cashiers.forEach(c => { %>
+                                <option value="<%= c.id %>" <%= data.filters.cashierId == c.id ? 'selected' : '' %>><%= c.fullName %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                                تطبيق الفلتر
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- بطاقات الإحصائيات مع إضافة بطاقة الوردية -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    
+                    <div class="report-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="stat-label">إجمالي المبيعات</p>
+                                <p class="stat-value text-blue-600"><%= data.stats.totalSales.toLocaleString('ar-IQ') %></p>
+                                <p class="text-xs text-slate-400 mt-2"><%= data.stats.totalInvoices %> فاتورة</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="trending-up" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة متوسط الفاتورة - تعديل التنسيق -->
+<div class="report-card">
+    <div class="flex justify-between items-start">
+        <div>
+            <p class="stat-label">متوسط الفاتورة</p>
+            <div class="flex items-baseline gap-1">
+                <p class="stat-value text-green-600"><%= Math.round(data.stats.averageInvoice).toLocaleString('ar-IQ') %></p>
+                <span class="text-xs text-slate-400">د.ع</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="text-xs font-bold text-slate-400">القيمة المتوسطة</span>
+                <span class="text-xs bg-green-100 dark:bg-green-500/20 text-green-600 px-2 py-1 rounded-full">
+                    تقريباً <%= Math.round(data.stats.averageInvoice / 1000) %> ألف
+                </span>
+            </div>
+        </div>
+        <div class="w-12 h-12 bg-green-100 dark:bg-green-500/10 rounded-2xl flex items-center justify-center">
+            <i data-lucide="calculator" class="w-6 h-6 text-green-600"></i>
+        </div>
+    </div>
+</div>
+
+                    <div class="report-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="stat-label">المبيعات النقدية</p>
+                                <p class="stat-value text-yellow-600"><%= data.stats.cashSales.toLocaleString('ar-IQ') %></p>
+                                <p class="text-xs text-slate-400 mt-2"><%= data.stats.cashInvoices %> فاتورة</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-500/10 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="wallet" class="w-6 h-6 text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="stat-label">المبيعات الآجلة</p>
+                                <p class="stat-value text-red-600"><%= data.stats.debtSales.toLocaleString('ar-IQ') %></p>
+                                <p class="text-xs text-slate-400 mt-2"><%= data.stats.debtInvoices %> فاتورة</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="credit-card" class="w-6 h-6 text-red-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة الوردية الحالية -->
+                    <div class="report-card bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="stat-label">مبيعات الوردية</p>
+                                <p class="stat-value text-indigo-600"><%= data.shiftStats.total.toLocaleString('ar-IQ') %></p>
+                                <p class="text-xs text-slate-400 mt-2">
+                                    <%= data.shiftStats.invoices %> فاتورة 
+                                    (من <%= data.shiftStats.startHour %>:00 إلى <%= data.shiftStats.endHour %>:00)
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="clock" class="w-6 h-6 text-indigo-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الرسوم البيانية مع إضافة رسم الساعات -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    
+                    <!-- رسم المبيعات اليومية -->
+                    <div class="report-card lg:col-span-2">
+                        <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="calendar" class="text-blue-600"></i>
+                            المبيعات اليومية
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="dailySalesChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- رسم توزيع المبيعات بالساعة -->
+                    <div class="report-card">
+                        <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="clock" class="text-purple-600"></i>
+                            توزيع المبيعات بالساعة
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="hourlySalesChart"></canvas>
+                        </div>
+                        <div class="mt-4 text-xs text-slate-400">
+                            <% 
+                                const peakHour = data.hourlySales.reduce((max, h) => h.total > max.total ? h : max, {total: 0});
+                            %>
+                            <p>ذروة المبيعات: 
+                                <span class="font-bold text-blue-600"><%= peakHour.hour %>:00</span> 
+                                (بمبلغ <%= peakHour.total.toLocaleString('ar-IQ') %>)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- توزيع المبيعات حسب الكاشير -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="report-card">
+                        <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="users" class="text-blue-600"></i>
+                            أداء الكاشيرات
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="cashierChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- أفضل العملاء -->
+                    <div class="report-card">
+                        <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="star" class="text-yellow-500"></i>
+                            أفضل العملاء
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="table-header">
+                                    <tr class="text-slate-500 dark:text-slate-400 text-sm">
+                                        <th class="py-3 px-4 text-right">العميل</th>
+                                        <th class="py-3 px-4 text-center">عدد الفواتير</th>
+                                        <th class="py-3 px-4 text-left">الإجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (data.topCustomers && data.topCustomers.length > 0) { %>
+                                        <% data.topCustomers.forEach(c => { %>
+                                        <tr class="table-row">
+                                            <td class="py-3 px-4 font-bold"><%= c.name %></td>
+                                            <td class="py-3 px-4 text-center"><%= c.invoices %></td>
+                                            <td class="py-3 px-4 text-left font-mono text-green-600"><%= c.total.toLocaleString('ar-IQ') %></td>
+                                        </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="3" class="py-4 text-center text-slate-400">
+                                                لا توجد بيانات
+                                            </td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- جدول آخر المبيعات -->
+                <div class="report-card mb-8">
+                    <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                        <i data-lucide="list" class="text-blue-600"></i>
+                        آخر المبيعات (50 فاتورة)
+                    </h3>
+                    <div class="overflow-x-auto custom-scroll">
+                        <table class="w-full">
+                            <thead class="table-header">
+                                <tr class="text-slate-500 dark:text-slate-400 text-sm">
+                                    <th class="py-3 px-4 text-right">رقم الفاتورة</th>
+                                    <th class="py-3 px-4 text-right">التاريخ</th>
+                                    <th class="py-3 px-4 text-right">العميل</th>
+                                    <th class="py-3 px-4 text-right">الكاشير</th>
+                                    <th class="py-3 px-4 text-center">النوع</th>
+                                    <th class="py-3 px-4 text-left">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (data.recentSales && data.recentSales.length > 0) { %>
+                                    <% data.recentSales.forEach(s => { %>
+                                    <tr class="table-row">
+                                        <td class="py-3 px-4 font-mono text-sm">#<%= s.invoiceNumber %></td>
+                                        <td class="py-3 px-4 text-sm"><%= new Date(s.date).toLocaleDateString('ar-IQ') %></td>
+                                        <td class="py-3 px-4 font-bold"><%= s.customer %></td>
+                                        <td class="py-3 px-4 text-sm"><%= s.cashier %></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="badge <%= s.type === 'CASH' ? 'badge-success' : 'badge-warning' %>">
+                                                <%= s.type === 'CASH' ? 'نقدي' : 'آجل' %>
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 text-left font-mono font-bold text-blue-600">
+                                            <%= s.total.toLocaleString('ar-IQ') %>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="6" class="py-8 text-center text-slate-400">
+                                            لا توجد مبيعات في هذه الفترة
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- تذييل الصفحة -->
+                <%- include('partials/footer') %>
+            </div>
+        </main>
+    </div>
+
+<!-- تضمين المكتبات -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- تضمين المكتبات -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // تعريف البيانات ككائن JavaScript صحيح
+    const reportData = <%- JSON.stringify(data) %>;
+
+    // تهيئة الأيقونات
+    lucide.createIcons();
+
+    // ==================== تهيئة الرسوم البيانية ====================
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // رسم المبيعات اليومية
+        const dailyCtx = document.getElementById('dailySalesChart')?.getContext('2d');
+        if (dailyCtx && reportData.dailySales) {
+            new Chart(dailyCtx, {
+                type: 'line',
+                data: {
+                    labels: reportData.dailySales.map(d => d.date),
+                    datasets: [{
+                        label: 'المبيعات',
+                        data: reportData.dailySales.map(d => d.total),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // رسم أداء الكاشيرات
+        const cashierCtx = document.getElementById('cashierChart')?.getContext('2d');
+        if (cashierCtx && reportData.byCashier) {
+            new Chart(cashierCtx, {
+                type: 'bar',
+                data: {
+                    labels: reportData.byCashier.map(c => c.name),
+                    datasets: [{
+                        label: 'المبيعات',
+                        data: reportData.byCashier.map(c => c.total),
+                        backgroundColor: '#10b981',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // رسم توزيع الساعات (Hourly Sales Chart)
+        const hourlyCtx = document.getElementById('hourlySalesChart')?.getContext('2d');
+        if (hourlyCtx && reportData.hourlySales) {
+            // ترتيب الساعات حسب الوردية (من 6 صباحاً إلى 5 صباحاً)
+            const hours = [];
+            const values = [];
+            
+            // إعادة ترتيب الساعات لتبدأ من 6 صباحاً
+            for(let i = 6; i < 24; i++) {
+                const hourData = reportData.hourlySales.find(h => h.hour === i);
+                hours.push(i + ':00');
+                values.push(hourData?.total || 0);
+            }
+            for(let i = 0; i < 6; i++) {
+                const hourData = reportData.hourlySales.find(h => h.hour === i);
+                hours.push(i + ':00');
+                values.push(hourData?.total || 0);
+            }
+            
+            new Chart(hourlyCtx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'المبيعات',
+                        data: values,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // رسم توزيع الساعات القديم (Hourly Chart) - إذا كان موجوداً
+        const oldHourlyCtx = document.getElementById('hourlyChart')?.getContext('2d');
+        if (oldHourlyCtx && reportData.hourlyDistribution) {
+            new Chart(oldHourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: reportData.hourlyDistribution.map(h => h.hour + ':00'),
+                    datasets: [{
+                        label: 'عدد الفواتير',
+                        data: reportData.hourlyDistribution.map(h => h.count),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }                       
+    });
+
+    // ==================== تصدير التقرير ====================
+   // في صفحة EJS - تحديث دالة exportReport
+function exportReport(format) {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    params.append('format', format);
+    
+    // إظهار رسالة تحميل
+    Swal.fire({
+        title: 'جاري التصدير',
+        text: 'يتم تحضير الملف للتحميل...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // تحويل الصفحة لتحميل الملف
+    window.location.href = `/reports/sales/export?${params.toString()}`;
+    
+    // إغلاق رسالة التحميل بعد ثانية
+    setTimeout(() => {
+        Swal.close();
+    }, 1000);
+}
+
+    // ==================== تحديث دالة الطباعة ====================
+    window.print = function() {
+        window.print();
+    };
+</script>
+</body>
+</html>

@@ -1,21 +1,26 @@
+// routes/report.routes.js
 import { Router } from "express";
-import { verifyToken } from "../midellwares/auth.middleware.js";
 import { 
-    getDashboard, 
-    getDashboardData,
-    exportDashboardPDF 
+    getReportsMainPage, 
+    getSalesReport, 
+    getInventoryReport, 
+    getDebtReport, 
+    exportSalesReport
 } from "../controllers/Report.controler.js";
+import { verifyToken } from "../midellwares/auth.middleware.js";
 
-export const dashboardRouter = Router();
+const dashboardRouter = Router();
 
-// جميع مسارات لوحة التحكم تتطلب مصادقة
 dashboardRouter.use(verifyToken);
 
-// ==================== الصفحات ====================
-dashboardRouter.get('/dashboard', getDashboard);
+// الصفحة الرئيسية للتقارير (البوابة)
+dashboardRouter.get('/reports', getReportsMainPage);
 
-// ==================== API ====================
-dashboardRouter.get('/api/dashboard/data', getDashboardData);
+// تقارير تفصيلية
+dashboardRouter.get('/reports/sales', getSalesReport);       // تقرير المبيعات
+dashboardRouter.get('/reports/inventory', getInventoryReport); // تقرير المخزون
+dashboardRouter.get('/reports/debts', getDebtReport);         // تقرير الديون
 
-// ==================== التصدير ====================
-dashboardRouter.get('/dashboard/export/pdf', exportDashboardPDF);
+// ==================== تصدير التقارير ====================
+dashboardRouter.get('/reports/sales/export', exportSalesReport);
+export default dashboardRouter;
