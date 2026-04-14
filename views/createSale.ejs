@@ -3,485 +3,888 @@
 <head>
     <%- include('partials/head') %>
     <style>
-        /* تثبيت الفاتورة وجعلها ثابتة */
-        .cart-sidebar {
-            position: sticky;
-            top: 20px;
-            height: fit-content;
-            max-height: calc(100vh - 40px);
+        * { box-sizing: border-box; }
+
+        body {
+            background: #0f172a;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow: hidden;
+        }
+
+        .pos-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            grid-template-rows: 100vh;
+            height: 100vh;
+        }
+
+        /* ===== الجانب الأيسر: قائمة المشتريات ===== */
+        .pos-left {
             display: flex;
             flex-direction: column;
+            background: #0f172a;
+            border-left: 1px solid #1e293b;
+            overflow: hidden;
         }
-        
-        .cart-container { 
+
+        /* شريط الباركود العلوي */
+        .barcode-bar {
+            background: #1e293b;
+            padding: 12px 16px;
+            border-bottom: 2px solid #2563eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .barcode-bar .scan-icon {
+            color: #3b82f6;
+            flex-shrink: 0;
+        }
+
+        .barcode-bar input {
             flex: 1;
-            overflow-y: auto;
-            min-height: 300px;
-            max-height: 400px;
-        }
-        
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
-        
-        .product-item:focus { 
-            border-color: #3b82f6; 
-            outline: none; 
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3); 
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            caret-color: #3b82f6;
         }
 
-        @keyframes scan-flash {
-            0% { transform: scale(1); background-color: rgba(59, 130, 246, 0.2); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); background-color: transparent; }
+        .barcode-bar input::placeholder {
+            color: #475569;
+            font-size: 14px;
+            font-weight: 400;
         }
-        .flash-success { animation: scan-flash 0.4s ease-out; }
 
-        .barcode-error-msg {
-            position: absolute;
-            bottom: -25px;
-            right: 0;
+        .barcode-error-badge {
             background: #ef4444;
             color: white;
-            padding: 4px 12px;
+            padding: 3px 10px;
             border-radius: 50px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 11px;
+            font-weight: 700;
             opacity: 0;
             transition: opacity 0.2s;
-            pointer-events: none;
+            white-space: nowrap;
         }
-        .barcode-error-msg.show { opacity: 1; }
+        .barcode-error-badge.show { opacity: 1; }
 
-        /* تحسين ظهور الفاتورة */
-        .cart-header {
+        /* رأس جدول المنتجات */
+        .items-header {
+            display: grid;
+            grid-template-columns: 1fr 100px 80px 32px;
+            padding: 10px 16px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            flex-shrink: 0;
+        }
+
+        .items-header span {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* قائمة العناصر */
+        .items-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .items-list::-webkit-scrollbar { width: 3px; }
+        .items-list::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 100px 80px 32px;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #1e293b;
+            transition: background 0.15s;
+        }
+
+        .item-row:hover { background: #1e293b; }
+
+        .item-name {
+            color: #f1f5f9;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .item-price-unit {
+            color: #94a3b8;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .item-qty-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .qty-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 6px;
+            background: #334155;
+            color: #cbd5e1;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .qty-btn:hover { background: #3b82f6; color: white; }
+
+        .qty-val {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .item-total {
+            color: #3b82f6;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .item-del {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #ef444460;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .item-del:hover { background: #ef444420; color: #ef4444; }
+
+        /* رسالة السلة الفارغة */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            gap: 12px;
+        }
+
+        .empty-state svg { opacity: 0.3; }
+        .empty-state p { font-size: 13px; opacity: 0.5; }
+
+        /* شريط الإجمالي السفلي */
+        .totals-bar {
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            padding: 14px 16px;
+            flex-shrink: 0;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+        }
+
+        .totals-row .label { color: #64748b; font-size: 13px; }
+        .totals-row .val { color: #cbd5e1; font-size: 13px; font-weight: 600; }
+        .totals-row.grand .label { color: #94a3b8; font-size: 16px; font-weight: 700; }
+        .totals-row.grand .val { color: #3b82f6; font-size: 24px; font-weight: 900; }
+
+        .divider {
+            border: none;
+            border-top: 1px dashed #334155;
+            margin: 8px 0;
+        }
+
+        /* ===== الجانب الأيمن: لوحة الدفع ===== */
+        .pos-right {
+            background: #1e293b;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            overflow-y: auto;
+            border-right: 1px solid #334155;
+        }
+
+        .pos-right::-webkit-scrollbar { width: 3px; }
+        .pos-right::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+
+        /* رأس لوحة الدفع */
+        .payment-header {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-header h2 {
             color: white;
-            border-radius: 2rem 2rem 0 0;
+            font-size: 16px;
+            font-weight: 800;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .cart-footer {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border-radius: 0 0 2rem 2rem;
+
+        .payment-header .stats {
+            text-align: left;
+            color: rgba(255,255,255,0.75);
+            font-size: 11px;
+            line-height: 1.6;
         }
-        
-        .dark .cart-footer {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
+
+        .payment-header .stats span {
+            display: block;
         }
-        
-        /* شريط بحث سريع */
-        .search-box {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: inherit;
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
+
+        .payment-header .stats strong {
+            color: white;
+            font-size: 14px;
         }
-        
-        .dark .search-box {
-            border-bottom-color: #334155;
+
+        /* بطاقات */
+        .card {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #334155;
         }
+
+        .card-label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-label svg { color: #3b82f6; }
+
+        select, input[type="number"] {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #f1f5f9;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        select:focus, input[type="number"]:focus {
+            border-color: #3b82f6;
+        }
+
+        select option { background: #1e293b; }
+
+        /* نوع الدفع */
+        .payment-type-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .pay-type-btn {
+            padding: 10px;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            background: #1e293b;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .pay-type-btn.active {
+            border-color: #3b82f6;
+            background: #3b82f610;
+            color: #3b82f6;
+        }
+
+        /* حقل المبلغ المدفوع */
+        .paid-display {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .paid-display:focus-within { border-color: #3b82f6; }
+
+        .paid-display .prefix {
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .paid-display input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 900;
+            text-align: left;
+            width: 100%;
+            padding: 0;
+        }
+
+        .paid-display .currency {
+            color: #64748b;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-right: 4px;
+        }
+
+        /* الباقي / المبلغ المتبقي */
+        .change-display {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+        }
+
+        .change-display .ch-label { color: #64748b; font-size: 12px; }
+        .change-display .ch-val { font-size: 18px; font-weight: 900; color: #22c55e; }
+        .change-display .ch-val.negative { color: #ef4444; }
+
+        /* لوحة الأرقام */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .num-btn {
+            padding: 14px 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .num-btn:hover { background: #1e293b; border-color: #3b82f6; color: #3b82f6; }
+        .num-btn:active { transform: scale(0.95); }
+        .num-btn.del-btn { color: #ef4444; font-size: 14px; }
+        .num-btn.clear-btn { color: #f59e0b; font-size: 13px; }
+        .num-btn.exact-btn { background: #1e293b; color: #3b82f6; font-size: 12px; font-weight: 800; }
+
+        /* أزرار الإجراءات */
+        .action-btns {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .btn-clear {
+            padding: 16px;
+            background: #ef444415;
+            border: 2px solid #ef444430;
+            border-radius: 12px;
+            color: #ef4444;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-clear:hover { background: #ef44441f; border-color: #ef4444; }
+
+        .btn-pay {
+            padding: 16px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px #3b82f640;
+        }
+
+        .btn-pay:hover { transform: translateY(-1px); box-shadow: 0 6px 24px #3b82f660; }
+        .btn-pay:active { transform: scale(0.98); }
+        .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* تأثير الإضافة */
+        @keyframes row-flash {
+            0%   { background: #3b82f620; }
+            100% { background: transparent; }
+        }
+        .row-added { animation: row-flash 0.4s ease-out; }
+
+        /* شريط الوقت */
+        .time-bar {
+            background: #0f172a;
+            padding: 6px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e293b;
+            flex-shrink: 0;
+        }
+
+        .time-bar .clock { color: #64748b; font-size: 12px; font-weight: 600; }
+        .time-bar .session { color: #3b82f650; font-size: 11px; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen overflow-hidden">
-    <div class="flex h-screen">
-        <%- include('partials/sidebar') %>
+<body>
+    <div class="pos-wrapper">
 
-        <main class="flex-1 flex flex-col min-h-screen">
-            <%- include('partials/navbar') %>
+        <!-- ========== الجانب الأيسر: قائمة المشتريات ========== -->
+        <div class="pos-left">
 
-            <div class="flex flex-1 gap-4 p-4 overflow-hidden">
-                
-                <!-- الجانب الأيمن: المنتجات (قابلة للتمرير) -->
-                <div class="flex-[2] flex flex-col gap-4 overflow-hidden">
-                    <!-- حقل الباركود -->
-                    <div class="bg-white dark:bg-pixelCard p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 relative sticky top-0 z-20">
-                        <div class="relative">
-                            <i data-lucide="scan-barcode" class="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 animate-pulse"></i>
-                            <input type="text" id="barcodeScannerInput" autofocus autocomplete="off" placeholder="مرر جهاز الباركود الآن..." 
-                                class="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold text-lg">
-                            <div id="barcodeErrorMsg" class="barcode-error-msg">❌ باركود غير مسجل</div>
-                        </div>
-                    </div>
+            <!-- شريط الوقت -->
+            <div class="time-bar">
+                <span class="clock" id="clockDisplay">--:--:--</span>
+                <span class="session">Iraq Pixel POS • جلسة نقطة البيع</span>
+            </div>
 
-                    <!-- شريط البحث السريع -->
-                    <div class="bg-white dark:bg-pixelCard p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 search-box">
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" id="quickSearch" placeholder="ابحث عن منتج..." 
-                                class="w-full pr-12 pl-4 py-3 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-transparent focus:border-blue-500 outline-none transition-all">
-                        </div>
-                    </div>
+            <!-- شريط الباركود -->
+            <div class="barcode-bar">
+                <svg class="scan-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="17" y1="12" x2="17" y2="12"/></svg>
+                <input type="text" id="barcodeScannerInput" autofocus autocomplete="off"
+                    placeholder="مرر الباركود أو أدخله يدوياً...">
+                <span class="barcode-error-badge" id="barcodeErrorMsg">❌ غير موجود</span>
+            </div>
 
-                    <!-- شبكة المنتجات (مع شريط تمرير) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scroll pb-10" id="productsGrid">
-                        <% products.forEach(product => { %>
-                            <button 
-                                data-id="<%= product.id %>"
-                                data-barcode="<%= product.barcode %>"
-                                data-name="<%= product.name %>"
-                                data-category="<%= product.Category ? product.Category.name : 'غير مصنف' %>"
-                                data-price="<%= product.salePrice %>"
-                                data-stock="<%= product.currentStock %>"
-                                class="product-item bg-white dark:bg-pixelCard p-5 rounded-[2rem] border border-gray-100 dark:border-slate-800 transition-all text-right shadow-sm group relative overflow-hidden hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-800">
-                                
-                                <div class="flex justify-between items-start mb-3">
-                                    <span class="bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider">
-                                        <i data-lucide="barcode" class="inline w-3 h-3 ml-1"></i>
-                                        <%= product.barcode %>
-                                    </span>
-                                    <span class="bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-full">
-                                        <i data-lucide="package" class="inline w-3 h-3 ml-1"></i>
-                                        <%= product.currentStock %>
-                                    </span>
-                                </div>
-                                
-                                <div class="flex items-center gap-2 mb-3">
-                                    <h3 class="text-xl font-black line-clamp-1 group-hover:text-blue-500 transition-colors flex-1">
-                                        <%= product.name %>
-                                    </h3>
-                                    <div class="flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-full shrink-0">
-                                        <i data-lucide="tag" class="w-3 h-3 text-blue-500"></i>
-                                        <span class="text-blue-600/80 dark:text-blue-400/80 text-[11px] font-bold">
-                                            <%= product.Category ? product.Category.name : 'بدون تصنيف' %>
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-baseline justify-between">
-                                    <span class="text-slate-400 text-sm">السعر:</span>
-                                    <p class="text-2xl font-black text-blue-600 dark:text-blue-400">
-                                        <%= parseFloat(product.salePrice).toLocaleString() %> 
-                                        <small class="text-xs font-normal text-slate-500">د.ع</small>
-                                    </p>
-                                </div>
-                            </button>
-                        <% }) %>
-                    </div>
-                </div>
+            <!-- رأس الجدول -->
+            <div class="items-header">
+                <span>المادة</span>
+                <span style="text-align:center">الكمية</span>
+                <span style="text-align:left">المجموع</span>
+                <span></span>
+            </div>
 
-                <!-- الجانب الأيسر: الفاتورة (ثابتة ولا تتحرك) -->
-                <div class="flex-1 cart-sidebar">
-                    <div class="bg-white dark:bg-pixelCard rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-slate-800 flex flex-col h-full">
-                        
-                        <!-- رأس الفاتورة -->
-                        <div class="cart-header p-6">
-                            <div class="flex justify-between items-center">
-                                <h2 class="text-xl font-black italic flex items-center gap-2 text-white">
-                                    <i data-lucide="shopping-cart" class="w-6 h-6"></i> 
-                                    الفاتورة الحالية
-                                </h2>
-                                <button onclick="clearCart()" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all backdrop-blur-sm">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </button>
-                            </div>
-                            
-                            <!-- ملخص سريع -->
-                            <div class="flex justify-between mt-4 text-white/80 text-sm">
-                                <span>عدد الأصناف: <span id="itemCount" class="font-bold text-white">0</span></span>
-                                <span>إجمالي القطع: <span id="totalQuantity" class="font-bold text-white">0</span></span>
-                            </div>
-                        </div>
-
-                        <!-- محتويات الفاتورة (قابلة للتمرير) -->
-                        <div class="flex-1 overflow-y-auto p-4 custom-scroll" id="cartItems" style="max-height: 400px;">
-                            <div id="emptyCartMsg" class="h-full flex flex-col items-center justify-center opacity-20 italic text-center">
-                                <i data-lucide="shopping-bag" class="w-16 h-16 mb-2"></i>
-                                <p class="text-sm">امسح الباركود لإضافة مواد</p>
-                            </div>
-                        </div>
-
-                        <!-- أسفل الفاتورة (الحقول الثابتة) -->
-                        <div class="cart-footer p-6">
-                            <div class="flex flex-col gap-3">
-                                <select id="customerId" class="w-full p-3 bg-white dark:bg-pixelCard border border-gray-200 dark:border-slate-800 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">زبون نقدي</option>
-                                    <% customers.forEach(c => { %> <option value="<%= c.id %>"><%= c.name %></option> <% }) %>
-                                </select>
-
-                                <div class="grid grid-cols-2 gap-2">
-                                    <select id="paymentType" onchange="togglePaymentMode()" class="p-3 bg-white dark:bg-pixelCard border border-gray-200 dark:border-slate-800 rounded-xl font-bold">
-                                        <option value="CASH">💰 نقدي</option>
-                                        <option value="DEBT">📝 آجل</option>
-                                    </select>
-                                    <input type="number" id="paidAmount" placeholder="المبلغ المدفوع" 
-                                        class="w-full p-3 bg-white dark:bg-pixelCard border border-gray-200 dark:border-slate-800 rounded-xl font-bold text-left"
-                                        dir="ltr">
-                                </div>
-
-                                <div class="flex justify-between items-center py-4 border-t-2 border-dashed border-gray-300 dark:border-slate-700 mt-2">
-                                    <span class="text-lg font-black italic">الإجمالي:</span>
-                                    <div class="text-left font-black text-blue-600 text-3xl" id="cartTotal">0</div>
-                                </div>
-
-                                <div class="flex gap-2">
-                                    <button onclick="quickPayment()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold transition-all">
-                                        <i data-lucide="zap" class="inline w-4 h-4 ml-1"></i>
-                                        دفع سريع
-                                    </button>
-                                    <button onclick="submitSale()" id="btnSubmit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-xl transition-all active:scale-95">
-                                        <i data-lucide="save" class="inline w-4 h-4 ml-1"></i>
-                                        حفظ (F2)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- قائمة العناصر -->
+            <div class="items-list" id="cartItems">
+                <div class="empty-state" id="emptyCartMsg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <p>لا توجد مواد — امسح الباركود للبدء</p>
                 </div>
             </div>
-             <!-- تذييل الصفحة -->
-                <%- include('partials/footer') %>
-        </main>
+
+            <!-- إجماليات -->
+            <div class="totals-bar">
+                <div class="totals-row">
+                    <span class="label">عدد الأصناف</span>
+                    <span class="val" id="itemCount">0</span>
+                </div>
+                <div class="totals-row">
+                    <span class="label">إجمالي القطع</span>
+                    <span class="val" id="totalQuantity">0</span>
+                </div>
+                <hr class="divider">
+                <div class="totals-row grand">
+                    <span class="label">المجموع الكلي</span>
+                    <span class="val"><span id="cartTotal">0</span> <small style="font-size:12px;color:#64748b">د.ع</small></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== الجانب الأيمن: لوحة الدفع ========== -->
+        <div class="pos-right">
+
+            <!-- رأس لوحة الدفع -->
+            <div class="payment-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    لوحة الدفع
+                </h2>
+                <div class="stats">
+                    <span>أصناف: <strong id="hdrCount">0</strong></span>
+                    <span>قطع: <strong id="hdrQty">0</strong></span>
+                </div>
+            </div>
+
+            <!-- الزبون -->
+            <div class="card">
+                <div class="card-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    الزبون
+                </div>
+                <select id="customerId">
+                    <option value="">💰 زبون نقدي</option>
+                    <% customers.forEach(c => { %>
+                        <option value="<%= c.id %>"><%= c.name %></option>
+                    <% }) %>
+                </select>
+            </div>
+
+            <!-- نوع الدفع -->
+            <div class="card">
+                <div class="card-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    نوع الدفع
+                </div>
+                <div class="payment-type-btns">
+                    <button class="pay-type-btn active" id="btnCash" onclick="setPayType('CASH')">💵 نقدي</button>
+                    <button class="pay-type-btn" id="btnDebt" onclick="setPayType('DEBT')">📋 آجل / دين</button>
+                </div>
+                <input type="hidden" id="paymentType" value="CASH">
+            </div>
+
+            <!-- المبلغ المدفوع -->
+            <div class="card">
+                <div class="card-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    المبلغ المدفوع
+                </div>
+                <div class="paid-display">
+                    <span class="prefix">IQD</span>
+                    <input type="number" id="paidAmount" placeholder="0" dir="ltr" oninput="updateChange()">
+                    <span class="currency">د.ع</span>
+                </div>
+            </div>
+
+            <!-- الباقي -->
+            <div class="change-display">
+                <span class="ch-label">الباقي للزبون</span>
+                <span class="ch-val" id="changeDisplay">0 د.ع</span>
+            </div>
+
+            <!-- لوحة الأرقام -->
+            <div class="card" style="padding:10px">
+                <div class="numpad" id="numpad">
+                    <button class="num-btn" onclick="numpadPress('7')">7</button>
+                    <button class="num-btn" onclick="numpadPress('8')">8</button>
+                    <button class="num-btn" onclick="numpadPress('9')">9</button>
+                    <button class="num-btn" onclick="numpadPress('4')">4</button>
+                    <button class="num-btn" onclick="numpadPress('5')">5</button>
+                    <button class="num-btn" onclick="numpadPress('6')">6</button>
+                    <button class="num-btn" onclick="numpadPress('1')">1</button>
+                    <button class="num-btn" onclick="numpadPress('2')">2</button>
+                    <button class="num-btn" onclick="numpadPress('3')">3</button>
+                    <button class="num-btn clear-btn" onclick="numpadPress('C')">مسح</button>
+                    <button class="num-btn" onclick="numpadPress('0')">0</button>
+                    <button class="num-btn del-btn" onclick="numpadPress('DEL')">⌫</button>
+                    <button class="num-btn exact-btn" style="grid-column:span 3" onclick="setExact()">المبلغ الدقيق ✓</button>
+                </div>
+            </div>
+
+            <!-- أزرار الإجراء -->
+            <div class="action-btns">
+                <button class="btn-clear" onclick="clearCart()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    مسح
+                </button>
+                <button class="btn-pay" id="btnSubmit" onclick="submitSale()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    تأكيد الدفع  <small style="opacity:0.7;font-size:11px">(F2)</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- المنتجات مخفية للباركود -->
+    <div style="display:none" id="hiddenProducts">
+        <% products.forEach(product => { %>
+            <div class="product-item"
+                data-id="<%= product.id %>"
+                data-barcode="<%= product.barcode %>"
+                data-name="<%= product.name %>"
+                data-price="<%= product.salePrice %>"
+                data-stock="<%= product.currentStock %>">
+            </div>
+        <% }) %>
     </div>
 
     <script>
-
-      
-
         window.cart = [];
+        let currentPayType = 'CASH';
 
         const barcodeInput = document.getElementById('barcodeScannerInput');
-        const errorMsg = document.getElementById('barcodeErrorMsg');
+        const errorBadge = document.getElementById('barcodeErrorMsg');
         const cartContainer = document.getElementById('cartItems');
-        const cartTotalEl = document.getElementById('cartTotal');
         const emptyMsg = document.getElementById('emptyCartMsg');
-        const itemCountEl = document.getElementById('itemCount');
-        const totalQuantityEl = document.getElementById('totalQuantity');
-        const quickSearch = document.getElementById('quickSearch');
 
-        function calculateTotal() {
-            return window.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // ===== ساعة =====
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockDisplay').textContent =
+                now.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-        function calculateStats() {
-            const count = window.cart.length;
-            const totalQty = window.cart.reduce((sum, item) => sum + item.quantity, 0);
-            return { count, totalQty };
-        }
-
-        function addToCart(productId, productName, productPrice, availableStock) {
-            const existing = window.cart.find(item => item.productId === productId);
-            if (existing) {
-                if (existing.quantity < availableStock) {
-                    existing.quantity += 1;
-                } else {
-                    alert('⚠️ لا يوجد مخزون كافي');
-                    return false;
-                }
+        // ===== نوع الدفع =====
+        window.setPayType = function(type) {
+            currentPayType = type;
+            document.getElementById('paymentType').value = type;
+            document.getElementById('btnCash').classList.toggle('active', type === 'CASH');
+            document.getElementById('btnDebt').classList.toggle('active', type === 'DEBT');
+            if (type === 'DEBT') {
+                document.getElementById('paidAmount').value = 0;
             } else {
-                window.cart.push({
-                    productId: productId,
-                    name: productName,
-                    price: productPrice,
-                    quantity: 1,
-                    stock: availableStock
-                });
+                document.getElementById('paidAmount').value = calcTotal();
+            }
+            updateChange();
+        };
+
+        // ===== لوحة الأرقام =====
+        window.numpadPress = function(key) {
+            const inp = document.getElementById('paidAmount');
+            if (key === 'C') { inp.value = ''; }
+            else if (key === 'DEL') { inp.value = inp.value.slice(0, -1); }
+            else { inp.value = (inp.value || '') + key; }
+            updateChange();
+        };
+
+        window.setExact = function() {
+            document.getElementById('paidAmount').value = calcTotal();
+            updateChange();
+        };
+
+        // ===== حساب الباقي =====
+        function updateChange() {
+            const total = calcTotal();
+            const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+            const change = paid - total;
+            const el = document.getElementById('changeDisplay');
+            el.textContent = change.toLocaleString('ar-IQ') + ' د.ع';
+            el.className = 'ch-val' + (change < 0 ? ' negative' : '');
+        }
+
+        function calcTotal() {
+            return window.cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        }
+
+        // ===== إضافة إلى السلة =====
+        function addToCart(productId, name, price, stock) {
+            const ex = window.cart.find(i => i.productId === productId);
+            if (ex) {
+                if (ex.quantity >= stock) { flashError('⚠️ المخزون محدود'); return false; }
+                ex.quantity++;
+            } else {
+                window.cart.push({ productId, name, price, quantity: 1, stock });
             }
             renderCart();
             return true;
         }
 
+        // ===== رسم السلة =====
         function renderCart() {
-            if (window.cart.length === 0) {
-                emptyMsg.style.display = 'flex';
+            const total = calcTotal();
+            const count = window.cart.length;
+            const totalQty = window.cart.reduce((s, i) => s + i.quantity, 0);
+
+            document.getElementById('cartTotal').textContent = total.toLocaleString('ar-IQ');
+            document.getElementById('itemCount').textContent = count;
+            document.getElementById('totalQuantity').textContent = totalQty;
+            document.getElementById('hdrCount').textContent = count;
+            document.getElementById('hdrQty').textContent = totalQty;
+
+            if (count === 0) {
                 cartContainer.innerHTML = '';
-                cartTotalEl.innerText = '0';
-                itemCountEl.innerText = '0';
-                totalQuantityEl.innerText = '0';
+                cartContainer.appendChild(emptyMsg);
+                emptyMsg.style.display = 'flex';
+                document.getElementById('paidAmount').value = '';
+                document.getElementById('changeDisplay').textContent = '0 د.ع';
                 return;
             }
 
-            emptyMsg.style.display = 'none';
             cartContainer.innerHTML = '';
-            let total = 0;
 
-            window.cart.forEach((item, index) => {
-                const subtotal = item.price * item.quantity;
-                total += subtotal;
-
-                const cartItem = document.createElement('div');
-                cartItem.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-shadow';
-                cartItem.innerHTML = `
-                    <div class="flex-1 text-right">
-                        <h4 class="font-bold text-sm text-slate-700 dark:text-slate-200 line-clamp-1">${item.name}</h4>
-                        <p class="text-[10px] text-blue-500 font-black mt-1">
-                            ${item.price.toLocaleString()} د.ع × ${item.quantity}
-                        </p>
+            window.cart.forEach((item, idx) => {
+                const sub = item.price * item.quantity;
+                const row = document.createElement('div');
+                row.className = 'item-row row-added';
+                row.innerHTML = `
+                    <div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price-unit">${item.price.toLocaleString('ar-IQ')} د.ع / قطعة</div>
                     </div>
-                    <div class="flex items-center gap-2 bg-gray-50 dark:bg-pixelDark p-1 rounded-xl ml-2">
-                        <button onclick="updateQuantity(${index}, 1)" class="w-7 h-7 rounded-lg bg-white dark:bg-pixelCard shadow-sm flex items-center justify-center hover:text-blue-500 transition-colors text-lg font-bold">+</button>
-                        <span class="w-6 text-center font-black text-sm">${item.quantity}</span>
-                        <button onclick="updateQuantity(${index}, -1)" class="w-7 h-7 rounded-lg bg-white dark:bg-pixelCard shadow-sm flex items-center justify-center hover:text-red-500 transition-colors text-lg font-bold">-</button>
+                    <div class="item-qty-ctrl">
+                        <button class="qty-btn" onclick="updateQty(${idx}, 1)">+</button>
+                        <span class="qty-val">${item.quantity}</span>
+                        <button class="qty-btn" onclick="updateQty(${idx}, -1)">−</button>
                     </div>
-                    <div class="min-w-[70px] text-left">
-                        <span class="font-black text-sm text-slate-500">${subtotal.toLocaleString()}</span>
-                    </div>
+                    <div class="item-total">${sub.toLocaleString('ar-IQ')}</div>
+                    <button class="item-del" onclick="removeItem(${idx})" title="حذف">✕</button>
                 `;
-                cartContainer.appendChild(cartItem);
+                cartContainer.appendChild(row);
             });
 
-            cartTotalEl.innerText = total.toLocaleString();
-            
-            const stats = calculateStats();
-            itemCountEl.innerText = stats.count;
-            totalQuantityEl.innerText = stats.totalQty;
-            
-            if (document.getElementById('paymentType').value === 'CASH') {
+            if (currentPayType === 'CASH') {
                 document.getElementById('paidAmount').value = total;
             }
+            updateChange();
         }
 
-        window.updateQuantity = function(index, delta) {
-            const item = window.cart[index];
+        window.updateQty = function(idx, d) {
+            const item = window.cart[idx];
             if (!item) return;
-            if (delta > 0 && item.quantity >= item.stock) {
-                alert('⚠️ لا توجد كمية كافية');
-                return;
-            }
-            item.quantity += delta;
-            if (item.quantity <= 0) window.cart.splice(index, 1);
+            if (d > 0 && item.quantity >= item.stock) { flashError('⚠️ لا يوجد مخزون'); return; }
+            item.quantity += d;
+            if (item.quantity <= 0) window.cart.splice(idx, 1);
+            renderCart();
+        };
+
+        window.removeItem = function(idx) {
+            window.cart.splice(idx, 1);
             renderCart();
         };
 
         window.clearCart = function() {
-            if (confirm('تفريغ الفاتورة؟')) {
-                window.cart = [];
-                renderCart();
-                barcodeInput.focus();
-            }
+            if (window.cart.length === 0) return;
+            if (!confirm('تفريغ الفاتورة الحالية؟')) return;
+            window.cart = [];
+            renderCart();
+            barcodeInput.focus();
         };
 
-        window.quickPayment = function() {
-            const total = calculateTotal();
-            document.getElementById('paidAmount').value = total;
-            submitSale();
-        };
+        // ===== باركود =====
+        function flashError(msg) {
+            errorBadge.textContent = msg;
+            errorBadge.classList.add('show');
+            setTimeout(() => errorBadge.classList.remove('show'), 2000);
+        }
 
-        window.submitSale = async function() {
-            if (window.cart.length === 0) return alert('السلة فارغة');
-            
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerText = 'جاري الحفظ...';
-
-            const payload = {
-                customerId: document.getElementById('customerId').value || null,
-                type: document.getElementById('paymentType').value,
-                paid: parseFloat(document.getElementById('paidAmount').value) || 0,
-                items: window.cart.map(i => ({ productId: i.productId, quantity: i.quantity }))
-            };
-
-            try {
-                const response = await fetch('/sales/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('✅ تم حفظ الفاتورة بنجاح');
-                    window.location.reload();
-                } else {
-                    alert('❌ فشل: ' + (result.message || 'خطأ غير معروف'));
-                }
-            } catch (err) {
-                alert('❌ خطأ في الاتصال بالخادم');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'حفظ (F2)';
-            }
-        };
-
-        window.togglePaymentMode = function() {
-            const type = document.getElementById('paymentType').value;
-            if (type === 'DEBT') {
-                document.getElementById('paidAmount').value = 0;
+        function handleBarcode(code) {
+            const trimmed = String(code).trim();
+            if (!trimmed) return;
+            const all = Array.from(document.querySelectorAll('.product-item'));
+            const el = all.find(e => String(e.dataset.barcode || '').trim() === trimmed);
+            if (el) {
+                errorBadge.classList.remove('show');
+                const id    = el.dataset.id;
+                const name  = el.dataset.name;
+                const price = parseFloat(el.dataset.price) || 0;
+                const stock = parseFloat(el.dataset.stock) || 0;
+                addToCart(id, name, price, stock);
             } else {
-                const total = calculateTotal();
-                document.getElementById('paidAmount').value = total;
-            }
-        };
-
-        // البحث السريع
-        quickSearch.addEventListener('input', function() {
-            const term = this.value.toLowerCase().trim();
-            document.querySelectorAll('.product-item').forEach(card => {
-                const name = card.dataset.name.toLowerCase();
-                const barcode = card.dataset.barcode.toLowerCase();
-                const category = card.dataset.category.toLowerCase();
-                
-                if (term === '') {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = (name.includes(term) || barcode.includes(term) || category.includes(term)) ? 'block' : 'none';
-                }
-            });
-        });
-
-        // معالجة الباركود
-        function handleBarcode(barcode) {
-            if (!barcode.trim()) return;
-            const productBtn = Array.from(document.querySelectorAll('.product-item:not([style*="display: none"])'))
-                .find(btn => btn.dataset.barcode === barcode.trim());
-            
-            if (productBtn) {
-                errorMsg.classList.remove('show');
-                const { id, name, price, stock } = productBtn.dataset;
-                addToCart(id, name, parseFloat(price), parseFloat(stock));
-                productBtn.classList.add('flash-success');
-                setTimeout(() => productBtn.classList.remove('flash-success'), 400);
-                
-                // تمرير تلقائي للمنتج المضاف
-                productBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                errorMsg.classList.add('show');
-                setTimeout(() => errorMsg.classList.remove('show'), 2000);
+                flashError('❌ باركود غير مسجل');
             }
         }
 
-        barcodeInput.addEventListener('keydown', (e) => {
+        barcodeInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const barcode = barcodeInput.value.trim();
-                if (barcode) handleBarcode(barcode);
+                const v = barcodeInput.value.trim();
+                if (v) handleBarcode(v);
                 barcodeInput.value = '';
             }
         });
 
         let scanTimer;
         barcodeInput.addEventListener('input', function() {
-            if (scanTimer) clearTimeout(scanTimer);
+            clearTimeout(scanTimer);
             scanTimer = setTimeout(() => {
-                const barcode = this.value.trim();
-                if (barcode) {
-                    handleBarcode(barcode);
-                    this.value = '';
-                }
+                const v = this.value.trim();
+                if (v) { handleBarcode(v); this.value = ''; }
             }, 300);
         });
 
-        document.querySelectorAll('.product-item').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const { id, name, price, stock } = this.dataset;
-                addToCart(id, name, parseFloat(price), parseFloat(stock));
-                this.classList.add('flash-success');
-                setTimeout(() => this.classList.remove('flash-success'), 400);
-            });
-        });
+        // ===== حفظ الفاتورة =====
+        window.submitSale = async function() {
+            if (window.cart.length === 0) return flashError('السلة فارغة');
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> جاري الحفظ...`;
 
-        document.addEventListener('keydown', (e) => {
+            const payload = {
+                customerId: document.getElementById('customerId').value || null,
+                type: currentPayType,
+                paid: parseFloat(document.getElementById('paidAmount').value) || 0,
+                items: window.cart.map(i => ({ productId: i.productId, quantity: i.quantity }))
+            };
+
+            try {
+                const res = await fetch('/sales/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('✅ تم حفظ الفاتورة بنجاح');
+                    window.location.reload();
+                } else {
+                    alert('❌ فشل: ' + (result.message || 'خطأ غير معروف'));
+                }
+            } catch {
+                alert('❌ خطأ في الاتصال بالخادم');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> تأكيد الدفع <small style="opacity:0.7;font-size:11px">(F2)</small>`;
+            }
+        };
+
+        // ===== اختصارات لوحة المفاتيح =====
+        document.addEventListener('keydown', e => {
             if (e.key === 'F2') { e.preventDefault(); submitSale(); }
             if (e.key === 'F4') { e.preventDefault(); clearCart(); }
-            if (e.key === '/' && !e.ctrlKey && !e.altKey) { 
-                e.preventDefault(); 
-                quickSearch.focus(); 
+            if (e.key === 'F5') { e.preventDefault(); setExact(); }
+            if (document.activeElement !== barcodeInput &&
+                document.activeElement !== document.getElementById('paidAmount')) {
+                barcodeInput.focus();
             }
         });
 
-        window.addEventListener('load', function() {
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+        window.addEventListener('load', () => {
             barcodeInput.value = '';
             barcodeInput.focus();
         });

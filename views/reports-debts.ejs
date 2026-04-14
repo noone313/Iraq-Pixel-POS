@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+</head>
+
+<body class="bg-slate-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex">
+    
+    <%- include('partials/sidebar') %>
+    
+    <main class="flex-1 p-6 lg:p-10">
+
+        <div class="max-w-6xl mx-auto">
+
+            <!-- Header -->
+            <div class="mb-10 text-center">
+                <h1 class="text-4xl font-black text-slate-800 dark:text-white italic">
+                    📈 التحليل الإحصائي للديون
+                </h1>
+                <p class="text-slate-500 mt-2">
+                    ملخص الأرصدة والالتزامات المالية الحالية
+                </p>
+            </div>
+
+            <!-- Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+
+                <!-- Customers -->
+                <div class="bg-white dark:bg-pixelCard p-8 rounded-[2.5rem] shadow-lg border border-slate-100 dark:border-slate-800 relative overflow-hidden hover:scale-[1.01] transition">
+
+                    <div class="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
+
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl">
+                            <i data-lucide="arrow-down-to-dot"></i>
+                        </span>
+                        <span class="text-xs font-black text-slate-400 tracking-widest">
+                            ديون العملاء (لنا)
+                        </span>
+                    </div>
+
+                    <div class="text-4xl font-black text-slate-800 dark:text-white mb-4 tabular-nums">
+                        <%= Number(customerStats?.totalDebt || 0).toLocaleString() %>
+                        <small class="text-lg opacity-50">د.ع</small>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 border-t pt-6">
+                        <div>
+                            <span class="text-xs text-slate-400 block">غير مسددة</span>
+                            <span class="font-bold text-lg">
+                                <%= customerStats?.pendingCount || 0 %>
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 block">جزئي</span>
+                            <span class="font-bold text-lg">
+                                <%= customerStats?.partialCount || 0 %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <% if (!customerStats || customerStats.totalDebt == 0) { %>
+                        <p class="text-xs text-slate-400 mt-4">لا توجد ديون حالياً</p>
+                    <% } %>
+                </div>
+
+                <!-- Suppliers -->
+                <div class="bg-white dark:bg-pixelCard p-8 rounded-[2.5rem] shadow-lg border border-slate-100 dark:border-slate-800 relative overflow-hidden hover:scale-[1.01] transition">
+
+                    <div class="absolute top-0 left-0 w-2 h-full bg-red-500"></div>
+
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="bg-red-100 text-red-600 p-3 rounded-2xl">
+                            <i data-lucide="arrow-up-from-dot"></i>
+                        </span>
+                        <span class="text-xs font-black text-slate-400 tracking-widest">
+                            ديون الموردين (علينا)
+                        </span>
+                    </div>
+
+                    <div class="text-4xl font-black text-slate-800 dark:text-white mb-4 tabular-nums">
+                        <%= Number(supplierStats?.totalDebt || 0).toLocaleString() %>
+                        <small class="text-lg opacity-50">د.ع</small>
+                    </div>
+
+                    <div class="pt-6 border-t">
+                        <span class="text-xs text-slate-400 block">عدد الفواتير</span>
+                        <span class="font-bold text-lg">
+                            <%= supplierStats?.totalInvoices || 0 %>
+                        </span>
+                    </div>
+
+                    <% if (!supplierStats || supplierStats.totalDebt == 0) { %>
+                        <p class="text-xs text-slate-400 mt-4">لا توجد التزامات حالياً</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Collection Rate -->
+            <div class="bg-slate-900 text-white p-10 rounded-[3rem] shadow-xl relative overflow-hidden">
+
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+
+                    <div class="text-right">
+                        <h3 class="text-2xl font-black mb-2">معدل تحصيل الديون</h3>
+                        <p class="text-slate-400 text-sm">
+                            نسبة الأموال المسترجعة من العملاء
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-6">
+
+                        <div class="text-5xl font-black text-emerald-400">
+                            <%= collectionRate || 0 %>%
+                        </div>
+
+                        <div class="w-48 h-4 bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                                class="h-full bg-emerald-500 transition-all duration-700"
+                                style="width: <%= collectionRate || 0 %>%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <% if (!collectionRate || collectionRate == 0) { %>
+                    <p class="text-xs text-slate-400 mt-4 text-center">
+                        لم يتم تسجيل عمليات تحصيل بعد
+                    </p>
+                <% } %>
+
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+    window.addEventListener('load', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+
+</body>
+</html>

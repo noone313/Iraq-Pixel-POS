@@ -11,6 +11,8 @@ import {
     CashMovement,
     StockMovement,
     User,
+    Purchase,
+    sequelize
 } from "../models/models.js";
 
 
@@ -18,12 +20,11 @@ import {
 export const getReportsMainPage = async (req, res) => {
     res.render('reports', {
         title: 'مركز التقارير - Pixel POS',
-        user: req.user // تأكد أن المفتاح هنا اسمه user ليتطابق مع ملف الـ EJS
+        user: req.user 
     });
 };
 
 
-// controllers/Report.controler.js - دالة getSalesReport كاملة
 
 // =============================================
 // تقرير المبيعات التفصيلي
@@ -106,44 +107,38 @@ export const getSalesReport = async (req, res, next) => {
             raw: true
         });
 
-        // ==================== 3. المبيعات حسب الساعة ====================
-        const hourlySales = await Sale.findAll({
-            where: {
-                [Op.and]: [
-                    { createdAt: { [Op.between]: [start, end] } }
-                ]
-            },
-            attributes: [
-                [fn('EXTRACT', literal('HOUR FROM "Sale"."createdAt"')), 'hour'],
-                [fn('COUNT', col('Sale.id')), 'count'],
-                [fn('SUM', col('Sale.total')), 'total']
-            ],
-            group: [fn('EXTRACT', literal('HOUR FROM "Sale"."createdAt"'))],
-            order: [[fn('EXTRACT', literal('HOUR FROM "Sale"."createdAt"')), 'ASC']],
-            raw: true
-        });
+       // 3. حساب تكلفة البضاعة المباعة (تعديل علامات الاقتباس)
+const costStats = await SaleItem.findOne({
+    include: [{
+        model: Sale,
+        where: dateFilter,
+        attributes: []
+    }],
+    attributes: [
+        // لاحظ استخدام "" حول أسماء الأعمدة
+        [sequelize.literal('SUM("costAtSale" * "quantity")'), 'totalCost']
+    ],
+    raw: true
+});
 
-        // ==================== 4. المبيعات حسب الكاشير ====================
-        const salesByCashier = await Sale.findAll({
-            where: whereClause,
-            attributes: [
-                [col('User.fullName'), 'cashierName'],
-                [fn('COUNT', col('Sale.id')), 'invoiceCount'],
-                [fn('SUM', col('Sale.total')), 'totalSales'],
-                [fn('AVG', col('Sale.total')), 'averageSale']
-            ],
-            include: [
-                { 
-                    model: User, 
-                    attributes: [],
-                    required: true 
-                }
-            ],
-            group: ['User.id'],
-            order: [[fn('SUM', col('Sale.total')), 'DESC']],
-            raw: true
-        });
-
+// 4. جلب أفضل 5 منتجات مبيعاً (تعديل علامات الاقتباس)
+const topProducts = await SaleItem.findAll({
+    include: [
+        { model: Sale, where: dateFilter, attributes: [] },
+        { model: Product, attributes: ['name'] }
+    ],
+    attributes: [
+        'productId',
+        [sequelize.literal('MAX("Product"."name")'), 'name'], 
+        [sequelize.fn('SUM', sequelize.col('SaleItem.quantity')), 'qty'],
+        // هنا أيضاً نستخدم علامات الاقتباس المزدوجة داخل الـ literal
+        [sequelize.fn('SUM', sequelize.col('SaleItem.total')), 'revenue']
+    ],
+    group: ['productId', 'Product.id'],
+    order: [[sequelize.literal('revenue'), 'DESC']],
+    limit: 5,
+    raw: true
+});
         // ==================== 5. آخر المبيعات ====================
         const recentSales = await Sale.findAll({
             where: whereClause,
@@ -684,7 +679,36 @@ export const exportSalesReport = async (req, res, next) => {
 
 // 3. تقرير المخزون
 export const getInventoryReport = async (req, res) => {
-    res.render('reports-inventory', { title: 'حالة المستودع' });
+    try {
+        const products = await Product.findAll({
+            include: [{ model: Category, attributes: ['name'] }],
+            order: [['currentStock', 'ASC']]
+        });
+
+        const validProducts = products.filter(p => p.currentStock > 0);
+
+        const stats = {
+            totalProducts: products.length,
+            lowStockCount: products.filter(p => p.currentStock <= 5 && p.currentStock > 0).length,
+            
+            // 1. إجمالي مبلغ الشراء (رأس المال)
+            totalCost: Math.round(validProducts.reduce((acc, p) => acc + (Number(p.purchasePrice) * p.currentStock), 0)),
+            
+            // 2. إجمالي مبلغ البيع المتوقع (كل الكاش الذي سيدخل المحل)
+            totalRevenue: Math.round(validProducts.reduce((acc, p) => acc + (Number(p.salePrice) * p.currentStock), 0)),
+        };
+
+        // 3. صافي الفائدة (الفرق بينهما)
+        stats.netProfit = stats.totalRevenue - stats.totalCost;
+
+        res.render('reports-inventory', {
+            title: 'تقرير الجرد المالي',
+            products,
+            stats
+        });
+    } catch (error) {
+        res.status(500).send('خطأ في الحسابات');
+    }
 };
 
 
@@ -694,5 +718,376 @@ export const getInventoryReport = async (req, res) => {
 
 // 4. تقرير الديون
 export const getDebtReport = async (req, res) => {
-    res.render('reports-debts', { title: 'سجل الديون' });
+    try {
+
+        // ===================== ديون العملاء =====================
+        const customerDebts = await Debt.findAll({
+            where: { type: 'CUSTOMER' }
+        });
+
+        const customerStats = {
+            totalDebt: customerDebts.reduce((sum, d) => sum + Number(d.remainingAmount), 0),
+            pendingCount: customerDebts.filter(d => d.status === 'PENDING').length,
+            partialCount: customerDebts.filter(d => d.status === 'PARTIAL').length
+        };
+
+        // ===================== ديون الموردين =====================
+        const supplierDebts = await Debt.findAll({
+            where: { type: 'SUPPLIER' }
+        });
+
+        const supplierStats = {
+            totalDebt: supplierDebts.reduce((sum, d) => sum + Number(d.remainingAmount), 0),
+            totalInvoices: supplierDebts.length
+        };
+
+        // ===================== معدل التحصيل =====================
+        const allCustomerDebts = await Debt.findAll({
+            where: { type: 'CUSTOMER' }
+        });
+
+        const totalOriginal = allCustomerDebts.reduce((sum, d) => sum + Number(d.originalAmount), 0);
+        const totalRemaining = allCustomerDebts.reduce((sum, d) => sum + Number(d.remainingAmount), 0);
+
+        let collectionRate = 0;
+
+        if (totalOriginal > 0) {
+            collectionRate = Math.round(((totalOriginal - totalRemaining) / totalOriginal) * 100);
+        }
+
+        // ===================== Render =====================
+        res.render('reports-debts', {
+            title: 'سجل الديون',
+            customerStats,
+            supplierStats,
+            collectionRate
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('خطأ في تحميل تقرير الديون');
+    }
+};
+
+
+// 5. تقرير الفواتير والمبيعات
+export const getInvoiceReport = async (req, res) => {
+    try {
+        // 1. جلب الفواتير مع بيانات العميل والمستخدم الذي قام بالبيع
+        const sales = await Sale.findAll({
+            include: [
+                { model: Customer, attributes: ['name'] },
+                { model: User, attributes: ['fullName'] }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit: 500 // لتجنب ثقل الصفحة
+        });
+
+        // 2. حساب إحصائيات سريعة للتقرير
+        const stats = {
+            totalInvoices: sales.length,
+            totalSalesAmount: sales.reduce((sum, s) => sum + parseFloat(s.total), 0),
+            totalPaidAmount: sales.reduce((sum, s) => sum + parseFloat(s.paid), 0),
+            totalDebtAmount: sales.reduce((sum, s) => sum + (parseFloat(s.total) - parseFloat(s.paid)), 0)
+        };
+
+        res.render('reports-invoices', {
+            title: 'سجل الفواتير والمبيعات',
+            sales,
+            stats
+        });
+    } catch (error) {
+        console.error("Invoice Report Error:", error);
+        res.status(500).render('error', { 
+            status: 500, 
+            message: "خطأ في جلب سجل الفواتير." 
+        });
+    }
+};
+
+
+// 6. التقرير الشهري الشامل
+export const getMonthlyFullReport = async (req, res) => {
+    try {
+        const { month } = req.query;
+
+       if (!month) {
+    return res.render('reports-monthly', {
+        title: 'تقرير شهري شامل',
+        report: null   // 🔥 هذا هو الحل
+    });
+}
+
+        const startDate = new Date(`${month}-01`);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+
+        // ===================== المبيعات =====================
+        const sales = await Sale.findAll({
+            where: {
+                createdAt: { [Op.between]: [startDate, endDate] }
+            },
+            include: [{ model: SaleItem }]
+        });
+
+        let totalSales = 0;
+        let totalPaid = 0;
+        let totalCost = 0;
+
+        sales.forEach(s => {
+            totalSales += Number(s.total);
+            totalPaid += Number(s.paid);
+
+            s.SaleItems.forEach(i => {
+                totalCost += Number(i.costAtSale) * Number(i.quantity);
+            });
+        });
+
+        const totalInvoices = sales.length;
+        const remaining = totalSales - totalPaid;
+        const profit = totalSales - totalCost;
+
+        // ===================== المشتريات =====================
+        const purchases = await Purchase.findAll({
+            where: {
+                createdAt: { [Op.between]: [startDate, endDate] }
+            }
+        });
+
+        const totalPurchases = purchases.reduce((sum, p) => sum + Number(p.total), 0);
+
+        // ===================== الديون =====================
+        const customerDebt = await Debt.sum('remainingAmount', {
+            where: { type: 'CUSTOMER' }
+        });
+
+        const supplierDebt = await Debt.sum('remainingAmount', {
+            where: { type: 'SUPPLIER' }
+        });
+
+        // ===================== التحصيل =====================
+        const collectionRate = totalSales > 0
+            ? Math.round((totalPaid / totalSales) * 100)
+            : 0;
+
+        // ===================== النتيجة =====================
+        const report = {
+            month,
+            totalSales,
+            totalPaid,
+            remaining,
+            totalInvoices,
+            totalCost,
+            profit,
+            totalPurchases,
+            customerDebt,
+            supplierDebt,
+            collectionRate
+        };
+
+        res.render('reports-monthly', {
+            title: 'تقرير شهري شامل',
+            report
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('خطأ في التقرير');
+    }
+};
+
+
+// 7. التقرير المالي الشامل
+export const getFullFinancialReport = async (req, res) => {
+    try {
+        const { fromDate, toDate } = req.query;
+
+        // 1. إعداد فلتر التاريخ (من بداية اليوم الأول إلى نهاية اليوم الأخير)
+        const dateFilter = {};
+        if (fromDate && toDate) {
+            dateFilter.createdAt = {
+                [Op.between]: [
+                    new Date(fromDate).setHours(0, 0, 0, 0),
+                    new Date(toDate).setHours(23, 59, 59, 999)
+                ]
+            };
+        }
+
+        // 2. إحصائيات المبيعات (استعلام واحد مجمع لزيادة الأداء)
+        const salesStats = await Sale.findOne({
+            where: dateFilter,
+            attributes: [
+                [sequelize.fn('SUM', sequelize.col('total')), 'totalSales'],
+                [sequelize.fn('SUM', sequelize.col('paid')), 'totalPaid'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'invoiceCount']
+            ],
+            raw: true
+        });
+
+        // 3. حساب تكلفة البضاعة المباعة (إصلاح مشكلة PostgreSQL عبر الـ Double Quotes)
+        const costStats = await SaleItem.findOne({
+            include: [{
+                model: Sale,
+                where: dateFilter,
+                attributes: []
+            }],
+            attributes: [
+                // استخدام "" حول أسماء الأعمدة لمنع PostgreSQL من تحويلها لأحرف صغيرة
+                [sequelize.literal('SUM("costAtSale" * "quantity")'), 'totalCost']
+            ],
+            raw: true
+        });
+
+        // 4. جلب أفضل 5 منتجات (إصلاح أسماء الأعمدة والربط)
+        const topProducts = await SaleItem.findAll({
+            include: [
+                { model: Sale, where: dateFilter, attributes: [] },
+                { model: Product, attributes: ['name'] }
+            ],
+            attributes: [
+                'productId',
+                [sequelize.literal('MAX("Product"."name")'), 'name'], 
+                [sequelize.fn('SUM', sequelize.col('SaleItem.quantity')), 'qty'],
+                [sequelize.fn('SUM', sequelize.col('SaleItem.total')), 'revenue']
+            ],
+            group: ['productId', 'Product.id'],
+            order: [[sequelize.literal('revenue'), 'DESC']],
+            limit: 5,
+            raw: true
+        });
+
+        // 5. المصاريف والديون (إحصائيات عامة)
+        const totalExpenses = await CashMovement.sum('amount', {
+            where: { category: 'EXPENSE', ...dateFilter }
+        }) || 0;
+
+        const customerDebt = await Debt.sum('remainingAmount', { where: { type: 'CUSTOMER' } }) || 0;
+        const supplierDebt = await Debt.sum('remainingAmount', { where: { type: 'SUPPLIER' } }) || 0;
+
+        // 6. تجميع النتائج النهائية
+        const report = {
+            totalSales: Number(salesStats.totalSales || 0),
+            totalPaid: Number(salesStats.totalPaid || 0),
+            totalCost: Number(costStats.totalCost || 0),
+            totalExpenses: Number(totalExpenses),
+            invoiceCount: salesStats.invoiceCount || 0,
+            customerDebt: Number(customerDebt),
+            supplierDebt: Number(supplierDebt),
+            topProducts: topProducts
+        };
+
+        // حساب المؤشرات المالية (KPIs)
+        report.grossProfit = report.totalSales - report.totalCost;
+        report.netProfit = report.grossProfit - report.totalExpenses;
+        report.profitMargin = report.totalSales > 0 ? ((report.netProfit / report.totalSales) * 100).toFixed(2) : 0;
+        report.collectionRate = report.totalSales > 0 ? ((report.totalPaid / report.totalSales) * 100).toFixed(2) : 0;
+
+        res.render('reports-full-financial', {
+            title: 'التقرير المالي الشامل',
+            report,
+            filters: { fromDate, toDate }
+        });
+
+    } catch (error) {
+        console.error("❌ Financial Report Error:", error);
+        res.status(500).render('error', { 
+            status: 500, 
+            message: 'خطأ في معالجة البيانات: تأكد من تطابق أسماء الأعمدة وحالة الأحرف.' 
+        });
+    }
+};
+
+
+
+// 8. تقرير المقارنة السنوية
+export const getAnnualComparison = async (req, res) => {
+    try {
+        const years = await Sale.findAll({
+            attributes: [
+                [Sequelize.fn('YEAR', Sequelize.col('createdAt')), 'year'],
+                [Sequelize.fn('SUM', Sequelize.col('total')), 'totalSales'],
+                [Sequelize.fn('SUM', Sequelize.col('paid')), 'totalPaid']
+            ],
+            group: ['year'],
+            order: [[Sequelize.literal('year'), 'ASC']],
+            raw: true
+        });
+
+        // COST per year
+        const costData = await SaleItem.findAll({
+            attributes: [
+                [Sequelize.fn('YEAR', Sequelize.col('createdAt')), 'year'],
+                [Sequelize.fn('SUM', Sequelize.literal('costAtSale * quantity')), 'totalCost']
+            ],
+            group: ['year'],
+            raw: true
+        });
+
+        // EXPENSES per year
+        const expenseData = await CashMovement.findAll({
+            attributes: [
+                [Sequelize.fn('YEAR', Sequelize.col('createdAt')), 'year'],
+                [Sequelize.fn('SUM', Sequelize.col('amount')), 'totalExpenses']
+            ],
+            where: { category: 'EXPENSE' },
+            group: ['year'],
+            raw: true
+        });
+
+        // دمج البيانات
+        const map = {};
+
+        years.forEach(y => {
+            map[y.year] = {
+                year: y.year,
+                sales: Number(y.totalSales || 0),
+                paid: Number(y.totalPaid || 0),
+                cost: 0,
+                expenses: 0,
+                profit: 0
+            };
+        });
+
+        costData.forEach(c => {
+            if (!map[c.year]) map[c.year] = { year: c.year };
+            map[c.year].cost = Number(c.totalCost || 0);
+        });
+
+        expenseData.forEach(e => {
+            if (!map[e.year]) map[e.year] = { year: e.year };
+            map[e.year].expenses = Number(e.totalExpenses || 0);
+        });
+
+        // حساب الأرباح
+        const result = Object.values(map).map(r => {
+            const grossProfit = r.sales - r.cost;
+            const netProfit = grossProfit - r.expenses;
+
+            return {
+                ...r,
+                grossProfit,
+                netProfit
+            };
+        }).sort((a, b) => a.year - b.year);
+
+        // Growth calculation
+        for (let i = 1; i < result.length; i++) {
+            const prev = result[i - 1];
+            const curr = result[i];
+
+            curr.growth = {
+                sales: prev.sales ? ((curr.sales - prev.sales) / prev.sales * 100).toFixed(2) : 0,
+                profit: prev.netProfit ? ((curr.netProfit - prev.netProfit) / prev.netProfit * 100).toFixed(2) : 0
+            };
+        }
+
+        res.render('reports-annual-comparison', {
+            title: 'مقارنة سنوية',
+            data: result
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('خطأ في التقرير السنوي');
+    }
 };

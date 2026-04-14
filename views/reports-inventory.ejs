@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .filter-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="flex">
+        <%- include('partials/sidebar') %>
+        
+        <main class="flex-1 p-6 lg:p-10">
+            
+
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div>
+                    <h1 class="text-4xl font-black text-slate-800 dark:text-white mb-2">📊 تقرير الجرد التفصيلي</h1>
+                    <p class="text-slate-500 font-medium">تحليل شامل لحركة المخزون والقيمة المادية للمستودع</p>
+                </div>
+                <div class="flex gap-3 no-print">
+                    <button onclick="window.print()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all">
+                        <i data-lucide="printer" class="w-5 h-5 text-blue-500"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 no-print">
+    
+    <div class="bg-slate-900 p-6 rounded-[2rem] text-white shadow-lg flex items-start gap-4">
+        <div class="bg-white/10 p-2.5 rounded-xl shrink-0">
+            <i data-lucide="wallet" class="w-5 h-5 text-slate-300"></i>
+        </div>
+        <div>
+            <span class="text-slate-400 text-[10px] font-black uppercase tracking-wider block mb-1">رأس المال (التكلفة)</span>
+            <div class="text-2xl font-black tabular-nums">
+                <%= stats.totalCost.toLocaleString() %> 
+                <small class="text-xs font-normal opacity-50">د.ع</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-500/20 flex items-start gap-4">
+        <div class="bg-white/20 p-2.5 rounded-xl shrink-0">
+            <i data-lucide="trending-up" class="w-5 h-5 text-blue-100"></i>
+        </div>
+        <div>
+            <span class="text-blue-100 text-[10px] font-black uppercase tracking-wider block mb-1">المبيعات المتوقعة (الكاش)</span>
+            <div class="text-2xl font-black tabular-nums">
+                <%= stats.totalRevenue.toLocaleString() %> 
+                <small class="text-xs font-normal opacity-70">د.ع</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-emerald-600 p-6 rounded-[2rem] text-white shadow-xl shadow-emerald-500/20 flex items-start gap-4">
+        <div class="bg-white/20 p-2.5 rounded-xl shrink-0">
+            <i data-lucide="banknote" class="w-5 h-5 text-emerald-100"></i>
+        </div>
+        <div>
+            <span class="text-emerald-100 text-[10px] font-black uppercase tracking-wider block mb-1">صافي الأرباح (الفائدة)</span>
+            <div class="text-2xl font-black tabular-nums">
+                <%= stats.netProfit.toLocaleString() %> 
+                <small class="text-xs font-normal opacity-70">د.ع</small>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+            <div class="flex flex-wrap gap-4 mb-6 no-print">
+                <button onclick="filterStock('all')" id="btn-all" class="filter-btn active px-6 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-800 font-bold transition-all">
+                    كل المنتجات
+                </button>
+                <button onclick="filterStock('low')" id="btn-low" class="filter-btn px-6 py-3 rounded-2xl border-2 border-red-200 text-red-600 font-bold transition-all hover:bg-red-50">
+                     مخزون منخفض (5 وأقل)
+                </button>
+                <button onclick="filterStock('zero')" id="btn-zero" class="filter-btn px-6 py-3 rounded-2xl border-2 border-slate-900 bg-slate-900 text-white font-bold transition-all hover:opacity-90">
+                     المنتهية (0)
+                </button>
+            </div>
+
+            <div class="bg-white dark:bg-pixelCard rounded-[2.5rem] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <table class="w-full text-right" id="inventoryTable">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-black uppercase tracking-wider">
+                            <th class="p-6">المنتج والباركود</th>
+                            <th class="p-6">التصنيف</th>
+                            <th class="p-6">التكلفة (شراء)</th>
+                            <th class="p-6">سعر البيع</th>
+                            <th class="p-6 text-center">المخزون</th>
+                            <th class="p-6 text-center">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <% products.forEach(p => { %>
+                            <tr class="product-row transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/30" 
+                                data-stock="<%= p.currentStock %>">
+                                <td class="p-6">
+                                    <div class="font-black text-slate-800 dark:text-white"><%= p.name %></div>
+                                    <div class="text-xs text-slate-400 font-mono"><%= p.barcode %></div>
+                                </td>
+                                <td class="p-6 font-bold text-slate-500 text-sm">
+                                    <%= p.Category ? p.Category.name : 'عام' %>
+                                </td>
+                                <td class="p-6 font-bold text-slate-400">
+                                    <%= p.purchasePrice.toLocaleString() %>
+                                </td>
+                                <td class="p-6 font-black text-blue-600">
+                                    <%= p.salePrice.toLocaleString() %>
+                                </td>
+                                <td class="p-6 text-center">
+                                    <span class="text-xl font-black <%= p.currentStock <= 5 ? 'text-red-600' : 'text-slate-700 dark:text-slate-200' %>">
+                                        <%= p.currentStock %>
+                                    </span>
+                                </td>
+                                <td class="p-6 text-center">
+                                    <% if(p.currentStock <= 0) { %>
+                                        <span class="bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">منتهي</span>
+                                    <% } else if(p.currentStock <= 5) { %>
+                                        <span class="bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">حرج</span>
+                                    <% } else { %>
+                                        <span class="bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">جيد</span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function filterStock(type) {
+            const rows = document.querySelectorAll('.product-row');
+            const btns = document.querySelectorAll('.filter-btn');
+            
+            // تحديث شكل الأزرار
+            btns.forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white'));
+            document.getElementById('btn-' + type).classList.add('active');
+
+            rows.forEach(row => {
+                const stock = parseInt(row.dataset.stock);
+                if (type === 'all') {
+                    row.style.display = 'table-row';
+                } else if (type === 'low') {
+                    row.style.display = (stock <= 5 && stock > 0) ? 'table-row' : 'none';
+                } else if (type === 'zero') {
+                    row.style.display = (stock <= 0) ? 'table-row' : 'none';
+                }
+            });
+        }
+
+        window.addEventListener('load', () => {
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

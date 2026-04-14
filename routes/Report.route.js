@@ -5,7 +5,10 @@ import {
     getSalesReport, 
     getInventoryReport, 
     getDebtReport, 
-    exportSalesReport
+    exportSalesReport,
+    getInvoiceReport,
+    getMonthlyFullReport,
+    getFullFinancialReport
 } from "../controllers/Report.controler.js";
 import { verifyToken } from "../midellwares/auth.middleware.js";
 
@@ -20,7 +23,9 @@ dashboardRouter.get('/reports', getReportsMainPage);
 dashboardRouter.get('/reports/sales', getSalesReport);       // تقرير المبيعات
 dashboardRouter.get('/reports/inventory', getInventoryReport); // تقرير المخزون
 dashboardRouter.get('/reports/debts', getDebtReport);         // تقرير الديون
-
+dashboardRouter.get('/reports/invoices', getInvoiceReport);  // تقرير الفواتير
+dashboardRouter.get('/reports/monthly-sales', getMonthlyFullReport); // تقرير المبيعات الشهري
+dashboardRouter.get('/reports/profit-loss', getFullFinancialReport); // تقرير المخزون الشهري
 // ==================== تصدير التقارير ====================
 dashboardRouter.get('/reports/sales/export', exportSalesReport);
 export default dashboardRouter;

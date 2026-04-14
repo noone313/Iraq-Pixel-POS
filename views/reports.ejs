@@ -3,352 +3,679 @@
 <head>
     <%- include('partials/head') %>
     <style>
-        /* ==================== أنماط مخصصة للبطاقات ==================== */
-        .report-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(203, 213, 225, 0.3);
-            position: relative;
-            overflow: hidden;
-            will-change: transform, border-color, box-shadow;
+        * { box-sizing: border-box; }
+
+        body {
+            background: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
 
-        .dark .report-card {
-            border-color: rgba(51, 65, 85, 0.5);
+        /* ===== Layout ===== */
+        .layout { display: flex; height: 100vh; overflow: hidden; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .scrollable { flex: 1; overflow-y: auto; }
+        .scrollable::-webkit-scrollbar { width: 4px; }
+        .scrollable::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+
+        /* ===== رأس الصفحة ===== */
+        .page-header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-bottom: 1px solid #1e293b;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
         }
 
-        .report-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            border-color: #3b82f6;
-            box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.25);
-        }
+        .page-header-left { display: flex; align-items: center; gap: 14px; }
 
-        .icon-wrapper {
-            width: 70px;
-            height: 70px;
-            border-radius: 24px;
+        .page-header-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
+            color: #3b82f6;
+            flex-shrink: 0;
         }
 
-        .report-card:hover .icon-wrapper {
-            transform: scale(1.1) rotate(5deg);
-        }
-
-        .card-arrow {
-            opacity: 0;
-            transform: translateX(10px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .report-card:hover .card-arrow {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        /* تأثير الخلفية المتوهجة */
-        .report-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 70%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .report-card:hover::after {
-            opacity: 1;
-        }
-
-        /* أنماط للبطاقة المميزة */
-        .featured-card {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            transition: background 0.4s ease;
-        }
-
-        .dark .featured-card {
-            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-        }
-
-        /* تنسيق النصوص */
-        .section-title {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        .page-title {
+            font-size: 22px;
+            font-weight: 900;
+            font-style: italic;
+            background: linear-gradient(135deg, #3b82f6, #818cf8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        /* ==================== أنماط التحول السلس ==================== */
-        body, body * {
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+        .page-subtitle {
+            color: #475569;
+            font-size: 12px;
+            margin-top: 2px;
         }
 
-        /* تحسين أداء التحولات */
-        .bg-white, .dark\:bg-pixelCard, .bg-gray-50, .dark\:bg-pixelDark,
-        .border-slate-100, .dark\:border-slate-800,
-        .text-slate-900, .dark\:text-slate-100,
-        .text-slate-500, .dark\:text-slate-400,
-        .bg-blue-100, .dark\:bg-blue-500\/10 {
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+        /* شرائح الإحصاء */
+        .stats-row {
+            display: flex;
+            gap: 10px;
         }
 
-        /* إخفاء شريط التمرير الجانبي */
-        .custom-scroll {
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE and Edge */
+        .stat-chip {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 7px 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: #64748b;
         }
 
-        .custom-scroll::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+        .stat-chip strong { color: #e2e8f0; font-size: 14px; font-weight: 800; }
+
+        /* ===== مجموعة التقارير ===== */
+        .group-section { padding: 24px 28px 0; }
+
+        .group-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
         }
 
-        /* ضمان سلاسة التمرير */
-        .smooth-scroll {
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
+        .group-title-line {
+            height: 2px;
+            flex: 1;
+            background: linear-gradient(to left, transparent, #1e293b);
+            border-radius: 2px;
         }
 
-        /* تحسين مظهر النص في الوضع الليلي */
-        .dark .text-slate-400 {
-            color: rgba(148, 163, 184, 0.9);
+        .group-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
         }
 
-        .dark .text-slate-500 {
-            color: rgba(100, 116, 139, 0.9);
+        .group-label-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--group-color, #3b82f6);
+            flex-shrink: 0;
         }
 
-        /* تأثيرات إضافية للتحول */
-        .theme-transition {
-            transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 300ms;
+        /* ===== بطاقة التقرير ===== */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+            padding-bottom: 24px;
         }
+
+        .report-card {
+            background: #1e293b;
+            border: 1px solid #1e3a5f20;
+            border-radius: 18px;
+            padding: 22px 20px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .report-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, var(--card-glow, rgba(59,130,246,0.06)), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--card-color, #3b82f6);
+            box-shadow: 0 16px 32px -8px rgba(0,0,0,0.5),
+                        0 0 0 1px var(--card-color, #3b82f6),
+                        0 0 20px -5px var(--card-glow, rgba(59,130,246,0.3));
+        }
+
+        .report-card:hover::before { opacity: 1; }
+
+        /* أيقونة */
+        .report-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--icon-bg, rgba(59,130,246,0.1));
+            color: var(--card-color, #3b82f6);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .report-card:hover .report-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .report-icon svg { width: 24px; height: 24px; stroke-width: 1.8; }
+
+        /* اسم التقرير */
+        .report-name {
+            font-size: 15px;
+            font-weight: 800;
+            font-style: italic;
+            color: #e2e8f0;
+            transition: color 0.2s;
+            position: relative;
+            z-index: 1;
+            line-height: 1.3;
+        }
+
+        .report-card:hover .report-name { color: var(--card-color, #3b82f6); }
+
+        /* شارة المسار */
+        .report-path {
+            font-size: 10px;
+            font-weight: 600;
+            color: #334155;
+            font-family: monospace;
+            position: relative;
+            z-index: 1;
+            margin-top: -8px;
+            transition: color 0.2s;
+        }
+
+        .report-card:hover .report-path { color: #475569; }
+
+        /* سهم الانتقال */
+        .report-arrow {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: var(--card-color, #3b82f6);
+            border-radius: 9px;
+            padding: 5px 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.28s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        .report-card:hover .report-arrow { opacity: 1; transform: translateY(0); }
+
+        .report-arrow svg { width: 12px; height: 12px; stroke-width: 2.5; transform: rotate(180deg); }
+
+        /* ===== ألوان البطاقات ===== */
+        /* أزرق */   .c-blue   { --card-color:#3b82f6; --icon-bg:rgba(59,130,246,0.1);  --card-glow:rgba(59,130,246,0.25); }
+        /* سماوي */  .c-sky    { --card-color:#0ea5e9; --icon-bg:rgba(14,165,233,0.1);  --card-glow:rgba(14,165,233,0.25); }
+        /* أخضر */   .c-green  { --card-color:#22c55e; --icon-bg:rgba(34,197,94,0.1);   --card-glow:rgba(34,197,94,0.25); }
+        /* زمردي */  .c-emer   { --card-color:#10b981; --icon-bg:rgba(16,185,129,0.1);  --card-glow:rgba(16,185,129,0.25); }
+        /* برتقالي */.c-orange { --card-color:#f97316; --icon-bg:rgba(249,115,22,0.1);  --card-glow:rgba(249,115,22,0.25); }
+        /* أصفر */   .c-amber  { --card-color:#f59e0b; --icon-bg:rgba(245,158,11,0.1);  --card-glow:rgba(245,158,11,0.25); }
+        /* وردي */   .c-pink   { --card-color:#ec4899; --icon-bg:rgba(236,72,153,0.1);  --card-glow:rgba(236,72,153,0.25); }
+        /* أحمر */   .c-red    { --card-color:#ef4444; --icon-bg:rgba(239,68,68,0.1);   --card-glow:rgba(239,68,68,0.25); }
+        /* وردي-أحمر*/.c-rose  { --card-color:#f43f5e; --icon-bg:rgba(244,63,94,0.1);   --card-glow:rgba(244,63,94,0.25); }
+        /* بنفسجي */ .c-purple { --card-color:#a855f7; --icon-bg:rgba(168,85,247,0.1);  --card-glow:rgba(168,85,247,0.25); }
+        /* نيلي */   .c-indigo { --card-color:#6366f1; --icon-bg:rgba(99,102,241,0.1);  --card-glow:rgba(99,102,241,0.25); }
+        /* زيتي */   .c-teal   { --card-color:#14b8a6; --icon-bg:rgba(20,184,166,0.1);  --card-glow:rgba(20,184,166,0.25); }
+
+        /* ===== خط فاصل ===== */
+        .section-gap { height: 8px; }
+        .bottom-space { height: 32px; }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-pixelDark text-slate-900 dark:text-slate-100 min-h-screen theme-transition">
-    <div class="flex h-screen overflow-hidden">
-        <!-- الشريط الجانبي (بصمة Pixel) -->
-        <%- include('partials/sidebar') %>
+<body>
+<div class="layout">
+    <%- include('partials/sidebar') %>
 
-        <!-- المحتوى الرئيسي -->
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <!-- شريط التنقل العلوي -->
-            <%- include('partials/navbar') %>
+    <div class="main-content">
+        <%- include('partials/navbar') %>
 
-            <!-- محتوى الصفحة - مع إخفاء شريط التمرير -->
-            <div class="flex-1 overflow-y-auto smooth-scroll custom-scroll p-8" style="scrollbar-width: none; -ms-overflow-style: none;">
-                <!-- رأس الصفحة -->
-                <div class="mb-12">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center theme-transition">
-                            <i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-3xl font-black italic">
-                                <span class="bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    مركز التقارير
-                                </span>
-                            </h1>
-                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 flex items-center gap-2 theme-transition">
-                                <i data-lucide="info" class="w-4 h-4"></i>
-                                اختر التقرير الذي ترغب بمراجعته من القائمة أدناه
-                            </p>
-                        </div>
+        <div class="scrollable">
+
+            <!-- رأس الصفحة -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <div class="page-header-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     </div>
-
-                    <!-- إحصائيات سريعة -->
-                    <div class="flex flex-wrap gap-4 mt-6">
-                        <div class="bg-white dark:bg-pixelCard px-5 py-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm theme-transition">
-                            <span class="text-xs font-bold text-slate-400 block mb-1">آخر تحديث</span>
-                            <span class="font-black text-sm flex items-center gap-2">
-                                <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
-                                <%= new Date().toLocaleString('ar-IQ') %>
-                            </span>
-                        </div>
-                        <div class="bg-white dark:bg-pixelCard px-5 py-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm theme-transition">
-                            <span class="text-xs font-bold text-slate-400 block mb-1">عدد التقارير</span>
-                            <span class="font-black text-sm flex items-center gap-2">
-                                <i data-lucide="file-text" class="w-4 h-4 text-green-600"></i>
-                                5 تقارير متاحة
-                            </span>
-                        </div>
+                    <div>
+                        <div class="page-title">مركز التقارير</div>
+                        <div class="page-subtitle">اختر التقرير المطلوب من القائمة أدناه</div>
                     </div>
                 </div>
-
-                <!-- شبكة التقارير -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    
-                    <!-- تقرير المبيعات -->
-                    <a href="/reports/sales" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
-                        <div class="relative z-10">
-                            <div class="icon-wrapper bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-8 theme-transition">
-                                <i data-lucide="trending-up" class="w-8 h-8"></i>
-                            </div>
-                            
-                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-blue-600 transition-colors theme-transition">
-                                تقرير المبيعات
-                            </h3>
-                            
-                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
-                                عرض تفصيلي للمبيعات اليومية، الأرباح، وإحصائيات فواتير الكاشير مع إمكانية التصفية حسب التاريخ.
-                            </p>
-                            
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
-                                    5 تقارير فرعية
-                                </span>
-                                <div class="card-arrow flex items-center gap-2 text-blue-600 font-black text-sm">
-                                    <span>عرض التقرير</span>
-                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- تقرير المخزون -->
-                    <a href="/reports/inventory" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
-                        <div class="relative z-10">
-                            <div class="icon-wrapper bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 mb-8 theme-transition">
-                                <i data-lucide="boxes" class="w-8 h-8"></i>
-                            </div>
-                            
-                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-orange-600 transition-colors theme-transition">
-                                حالة المخزون
-                            </h3>
-                            
-                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
-                                مراقبة كميات المواد، المنتجات منخفضة المخزون، تنبيهات النواقص، وقيمة المخزون الإجمالية.
-                            </p>
-                            
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
-                                    4 تقارير فرعية
-                                </span>
-                                <div class="card-arrow flex items-center gap-2 text-orange-600 font-black text-sm">
-                                    <span>عرض التقرير</span>
-                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- تقرير الديون -->
-                    <a href="/reports/debts" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
-                        <div class="relative z-10">
-                            <div class="icon-wrapper bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 mb-8 theme-transition">
-                                <i data-lucide="credit-card" class="w-8 h-8"></i>
-                            </div>
-                            
-                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-red-600 transition-colors theme-transition">
-                                الديون والحسابات
-                            </h3>
-                            
-                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
-                                كشف حسابات العملاء، مديونيات الموردين، جدول التسديد، وتقارير الديون الشهرية.
-                            </p>
-                            
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
-                                    3 تقارير فرعية
-                                </span>
-                                <div class="card-arrow flex items-center gap-2 text-red-600 font-black text-sm">
-                                    <span>عرض التقرير</span>
-                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- تقرير النقدية -->
-                    <a href="/reports/cash" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
-                        <div class="relative z-10">
-                            <div class="icon-wrapper bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 mb-8 theme-transition">
-                                <i data-lucide="wallet" class="w-8 h-8"></i>
-                            </div>
-                            
-                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-green-600 transition-colors theme-transition">
-                                حركة الصندوق
-                            </h3>
-                            
-                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
-                                متابعة المقبوضات والمصروفات اليومية، صافي الوارد المالي، وتقارير الخزينة.
-                            </p>
-                            
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
-                                    3 تقارير فرعية
-                                </span>
-                                <div class="card-arrow flex items-center gap-2 text-green-600 font-black text-sm">
-                                    <span>عرض التقرير</span>
-                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- تقرير المشتريات -->
-                    <a href="/reports/purchases" class="report-card bg-white dark:bg-pixelCard p-8 rounded-[2rem] shadow-lg relative group theme-transition">
-                        <div class="relative z-10">
-                            <div class="icon-wrapper bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 mb-8 theme-transition">
-                                <i data-lucide="truck" class="w-8 h-8"></i>
-                            </div>
-                            
-                            <h3 class="text-2xl font-black italic mb-3 group-hover:text-purple-600 transition-colors theme-transition">
-                                تقارير المشتريات
-                            </h3>
-                            
-                            <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-8 font-medium theme-transition">
-                                تحليل المشتريات، فواتير الشراء، وأداء الموردين مع إحصائيات التوريد.
-                            </p>
-                            
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider theme-transition">
-                                    3 تقارير فرعية
-                                </span>
-                                <div class="card-arrow flex items-center gap-2 text-purple-600 font-black text-sm">
-                                    <span>عرض التقرير</span>
-                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-
-                   
+                <div class="stats-row">
+                    <div class="stat-chip">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <strong>20</strong> تقرير
+                    </div>
+                    <div class="stat-chip">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#22c55e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <strong><%= new Date().toLocaleTimeString('ar-IQ', {hour:'2-digit',minute:'2-digit'}) %></strong>
+                    </div>
                 </div>
+            </div>
 
-                <!-- تذييل الصفحة -->
-                <%- include('partials/footer') %>
-        </main>
-    </div>
+            <!-- ======================================= -->
+            <!-- مجموعة 1: المبيعات والإيرادات           -->
+            <!-- ======================================= -->
+            <div class="group-section">
+                <div class="group-title" style="--group-color:#3b82f6">
+                    <div class="group-label-dot"></div>
+                    <span class="group-label">المبيعات والإيرادات</span>
+                    <div class="group-title-line"></div>
+                </div>
+                <div class="reports-grid">
 
-    <!-- تضمين Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        // تهيئة الأيقونات
-        lucide.createIcons();
+                    <!-- 1. تقرير المبيعات -->
+                    <a href="/reports/sales" class="report-card c-blue">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        </div>
+                        <div class="report-name">تقرير المبيعات</div>
+                        <div class="report-path">/reports/sales</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
 
-        // مراقبة تغيير الوضع (light/dark)
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'class') {
-                    // إضافة تأثير سلس عند تغيير الوضع
-                    document.body.style.transition = 'background-color 0.3s ease';
-                    setTimeout(() => {
-                        document.body.style.transition = '';
-                    }, 300);
-                }
-            });
-        });
+                    <!-- 2. الفواتير -->
+                    <a href="/reports/invoices" class="report-card c-sky">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <div class="report-name">تقرير الفواتير</div>
+                        <div class="report-path">/reports/invoices</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
 
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-    </script>
+                    <!-- 3. المبيعات الشهرية -->
+                    <a href="/reports/monthly-sales" class="report-card c-indigo">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        </div>
+                        <div class="report-name">المبيعات الشهرية</div>
+                        <div class="report-path">/reports/monthly-sales</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 4. الأرباح والخسائر -->
+                    <a href="/reports/profit-loss" class="report-card c-emer">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        </div>
+                        <div class="report-name">الأرباح والخسائر</div>
+                        <div class="report-path">/reports/profit-loss</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 5. المقارنة السنوية -->
+                    <a href="/reports/annual-comparison" class="report-card c-teal">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                        <div class="report-name">المقارنة السنوية</div>
+                        <div class="report-path">/reports/annual-comparison</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- مجموعة 2: المخزون والمنتجات            -->
+            <!-- ======================================= -->
+            <div class="group-section">
+                <div class="group-title" style="--group-color:#f97316">
+                    <div class="group-label-dot"></div>
+                    <span class="group-label">المخزون والمنتجات</span>
+                    <div class="group-title-line"></div>
+                </div>
+                <div class="reports-grid">
+
+                    <!-- 6. حالة المخزون -->
+                    <a href="/reports/inventory" class="report-card c-orange">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        </div>
+                        <div class="report-name">حالة المخزون</div>
+                        <div class="report-path">/reports/inventory</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 7. المخزون المنخفض -->
+                    <a href="/reports/low-stock" class="report-card c-rose">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div class="report-name">تنبيه المخزون المنخفض</div>
+                        <div class="report-path">/reports/low-stock</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 8. حركة المخزون -->
+                    <a href="/reports/stock-movement" class="report-card c-amber">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                        </div>
+                        <div class="report-name">حركة المخزون</div>
+                        <div class="report-path">/reports/stock-movement</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 9. الأكثر مبيعاً -->
+                    <a href="/reports/top-products" class="report-card c-amber">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        <div class="report-name">الأكثر مبيعاً</div>
+                        <div class="report-path">/reports/top-products</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 10. التصنيفات -->
+                    <a href="/reports/categories" class="report-card c-purple">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        </div>
+                        <div class="report-name">تقرير التصنيفات</div>
+                        <div class="report-path">/reports/categories</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- مجموعة 3: المالية والخزينة              -->
+            <!-- ======================================= -->
+            <div class="group-section">
+                <div class="group-title" style="--group-color:#22c55e">
+                    <div class="group-label-dot"></div>
+                    <span class="group-label">المالية والخزينة</span>
+                    <div class="group-title-line"></div>
+                </div>
+                <div class="reports-grid">
+
+                    <!-- 11. حركة الصندوق -->
+                    <a href="/reports/cash" class="report-card c-green">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                        </div>
+                        <div class="report-name">حركة الصندوق</div>
+                        <div class="report-path">/reports/cash</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 12. الديون والحسابات -->
+                    <a href="/reports/debts" class="report-card c-red">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        </div>
+                        <div class="report-name">الديون والحسابات</div>
+                        <div class="report-path">/reports/debts</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 13. المرتجعات -->
+                    <a href="/reports/returns" class="report-card c-rose">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+                        </div>
+                        <div class="report-name">تقرير المرتجعات</div>
+                        <div class="report-path">/reports/returns</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 14. الخصومات -->
+                    <a href="/reports/discounts" class="report-card c-pink">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                        </div>
+                        <div class="report-name">تقرير الخصومات</div>
+                        <div class="report-path">/reports/discounts</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 15. الضريبة -->
+                    <a href="/reports/tax" class="report-card c-red">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+                        </div>
+                        <div class="report-name">تقرير الضريبة</div>
+                        <div class="report-path">/reports/tax</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- مجموعة 4: العملاء والموردون             -->
+            <!-- ======================================= -->
+            <div class="group-section">
+                <div class="group-title" style="--group-color:#a855f7">
+                    <div class="group-label-dot"></div>
+                    <span class="group-label">العملاء والموردون</span>
+                    <div class="group-title-line"></div>
+                </div>
+                <div class="reports-grid">
+
+                    <!-- 16. تقرير الزبائن -->
+                    <a href="/reports/customers" class="report-card c-purple">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="report-name">تقرير الزبائن</div>
+                        <div class="report-path">/reports/customers</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 17. تقرير الموردين -->
+                    <a href="/reports/suppliers" class="report-card c-indigo">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        </div>
+                        <div class="report-name">تقرير الموردين</div>
+                        <div class="report-path">/reports/suppliers</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 18. المشتريات -->
+                    <a href="/reports/purchases" class="report-card c-teal">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                        </div>
+                        <div class="report-name">تقارير المشتريات</div>
+                        <div class="report-path">/reports/purchases</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 19. مشتريات الزبون -->
+                    <a href="/reports/customer-purchases" class="report-card c-pink">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+                        </div>
+                        <div class="report-name">مشتريات الزبون</div>
+                        <div class="report-path">/reports/customer-purchases</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- مجموعة 5: التشغيل والأداء               -->
+            <!-- ======================================= -->
+            <div class="group-section">
+                <div class="group-title" style="--group-color:#f59e0b">
+                    <div class="group-label-dot"></div>
+                    <span class="group-label">التشغيل والأداء</span>
+                    <div class="group-title-line"></div>
+                </div>
+                <div class="reports-grid">
+
+                    <!-- 20. العمليات اليومية -->
+                    <a href="/reports/daily" class="report-card c-amber">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        </div>
+                        <div class="report-name">العمليات اليومية</div>
+                        <div class="report-path">/reports/daily</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 21. أداء الكاشير -->
+                    <a href="/reports/cashier-performance" class="report-card c-sky">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+                        </div>
+                        <div class="report-name">أداء الكاشير</div>
+                        <div class="report-path">/reports/cashier-performance</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 22. سجل الإجراءات -->
+                    <a href="/reports/activity-log" class="report-card c-indigo">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <div class="report-name">سجل الإجراءات</div>
+                        <div class="report-path">/reports/activity-log</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 23. تقرير الساعات الذروة -->
+                    <a href="/reports/peak-hours" class="report-card c-orange">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div class="report-name">ساعات الذروة</div>
+                        <div class="report-path">/reports/peak-hours</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                    <!-- 24. تقرير الطباعة والإيصالات -->
+                    <a href="/reports/receipts" class="report-card c-teal">
+                        <div class="report-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        </div>
+                        <div class="report-name">الإيصالات والطباعة</div>
+                        <div class="report-path">/reports/receipts</div>
+                        <div class="report-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+                            فتح
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <div class="bottom-space"></div>
+
+        </div><!-- /scrollable -->
+    </div><!-- /main-content -->
+</div><!-- /layout -->
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+</script>
 </body>
 </html>

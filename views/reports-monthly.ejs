@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        /* تحسينات التصميم العصري */
+        .stat-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .dark .stat-card { border-color: rgba(30, 41, 59, 0.5); }
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        .hero-gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .hero-gradient-emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .hero-gradient-slate { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+
+        .progress-ring {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-full { width: 100% !important; margin: 0 !important; }
+        }
+
+        /* إلغاء سهم الاختيار الافتراضي للمتصفح */
+        .appearance-none {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-pixelDark text-slate-900 dark:text-white min-h-screen font-sans">
+
+<div class="flex">
+    <%- include('partials/sidebar') %>
+
+    <main class="flex-1 p-4 lg:p-8 overflow-hidden">
+
+        <div class="max-w-7xl mx-auto">
+            
+            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 no-print">
+                <div>
+                    <h1 class="text-3xl font-black text-slate-800 dark:text-white italic">📅 التقارير الشهرية</h1>
+                    <p class="text-slate-500 text-sm font-bold">تحليل الأداء المالي والمبيعات</p>
+                </div>
+
+                <form method="GET" id="dateFilterForm" class="flex flex-col md:flex-row items-center gap-3 bg-white dark:bg-pixelCard p-3 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center gap-2 w-full md:w-80">
+                        <div class="relative flex-1">
+                            <select id="selectedMonth" 
+                                class="w-full appearance-none pr-10 pl-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer">
+                                <option value="01">يناير (01)</option>
+                                <option value="02">فبراير (02)</option>
+                                <option value="03">مارس (03)</option>
+                                <option value="04">أبريل (04)</option>
+                                <option value="05">مايو (05)</option>
+                                <option value="06">يونيو (06)</option>
+                                <option value="07">يوليو (07)</option>
+                                <option value="08">أغسطس (08)</option>
+                                <option value="09">سبتمبر (09)</option>
+                                <option value="10">أكتوبر (10)</option>
+                                <option value="11">نوفمبر (11)</option>
+                                <option value="12">ديسمبر (12)</option>
+                            </select>
+                            <i data-lucide="calendar-days" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                        </div>
+
+                        <div class="relative flex-1">
+                            <select id="selectedYear" 
+                                class="w-full appearance-none pr-10 pl-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer">
+                                <% const currentYear = new Date().getFullYear(); %>
+                                <% for(let i = currentYear; i >= currentYear - 5; i--) { %>
+                                    <option value="<%= i %>"><%= i %></option>
+                                <% } %>
+                            </select>
+                            <i data-lucide="hash" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="month" id="finalMonthValue">
+
+                    <button type="submit" onclick="mergeDateValue()" 
+                        class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black text-sm transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        تحديث البيانات
+                    </button>
+                </form>
+            </div>
+
+            <% if (!report) { %>
+                <div class="flex flex-col items-center justify-center py-24 opacity-40 italic">
+                    <div class="bg-white dark:bg-pixelCard p-10 rounded-full shadow-inner mb-6">
+                        <i data-lucide="bar-chart-3" class="w-24 h-24 text-blue-500"></i>
+                    </div>
+                    <p class="text-2xl font-bold">بانتظار تحديد الفترة الزمنية للعرض</p>
+                </div>
+            <% } else { %>
+
+                <div class="flex items-center justify-between mb-8 pb-4 border-b border-dashed border-slate-300 dark:border-slate-700">
+                    <h2 class="text-2xl font-black tabular-nums">تقرير الأداء لشهر: <span class="text-blue-600"><%= report.month %></span></h2>
+                    <button onclick="window.print()" class="no-print bg-white dark:bg-pixelCard p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-blue-500 transition-colors">
+                        <i data-lucide="printer" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="hero-gradient-blue p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+                        <i data-lucide="trending-up" class="absolute -left-4 -bottom-4 w-32 h-32 opacity-10"></i>
+                        <span class="text-blue-100 text-[10px] font-black uppercase tracking-widest block mb-1">إجمالي المبيعات</span>
+                        <div class="text-4xl font-black tabular-nums"><%= report.totalSales.toLocaleString() %> <small class="text-sm font-normal">د.ع</small></div>
+                    </div>
+
+                    <div class="hero-gradient-slate p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+                        <i data-lucide="wallet" class="absolute -left-4 -bottom-4 w-32 h-32 opacity-10"></i>
+                        <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-1">إجمالي التكلفة</span>
+                        <div class="text-4xl font-black tabular-nums"><%= report.totalCost.toLocaleString() %> <small class="text-sm font-normal">د.ع</small></div>
+                    </div>
+
+                    <div class="hero-gradient-emerald p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+                        <i data-lucide="banknote" class="absolute -left-4 -bottom-4 w-32 h-32 opacity-10"></i>
+                        <span class="text-emerald-100 text-[10px] font-black uppercase tracking-widest block mb-1">صافي الأرباح</span>
+                        <div class="text-4xl font-black tabular-nums"><%= report.profit.toLocaleString() %> <small class="text-sm font-normal">د.ع</small></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                    <div class="bg-white dark:bg-pixelCard p-5 rounded-[2rem] stat-card shadow-sm flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                        <div class="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-2xl"><i data-lucide="layers" class="w-5 h-5 text-blue-500"></i></div>
+                        <div>
+                            <span class="text-slate-400 text-[10px] font-black uppercase block">الفواتير</span>
+                            <span class="text-lg font-black tabular-nums"><%= report.totalInvoices %></span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-pixelCard p-5 rounded-[2rem] stat-card shadow-sm flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                        <div class="bg-emerald-50 dark:bg-emerald-500/10 p-3 rounded-2xl"><i data-lucide="check-square" class="w-5 h-5 text-emerald-500"></i></div>
+                        <div>
+                            <span class="text-slate-400 text-[10px] font-black uppercase block">الكاش المحصل</span>
+                            <span class="text-lg font-black tabular-nums text-emerald-600"><%= report.totalPaid.toLocaleString() %></span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-pixelCard p-5 rounded-[2rem] stat-card shadow-sm flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                        <div class="bg-red-50 dark:bg-red-500/10 p-3 rounded-2xl"><i data-lucide="clock-8" class="w-5 h-5 text-red-500"></i></div>
+                        <div>
+                            <span class="text-slate-400 text-[10px] font-black uppercase block">بانتظار التحصيل</span>
+                            <span class="text-lg font-black tabular-nums text-red-500"><%= report.remaining.toLocaleString() %></span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-pixelCard p-5 rounded-[2rem] stat-card shadow-sm flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                        <div class="bg-orange-50 dark:bg-orange-500/10 p-3 rounded-2xl"><i data-lucide="users" class="w-5 h-5 text-orange-500"></i></div>
+                        <div>
+                            <span class="text-slate-400 text-[10px] font-black uppercase block">ديون العملاء</span>
+                            <span class="text-lg font-black tabular-nums"><%= (report.customerDebt || 0).toLocaleString() %></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div class="relative z-10 text-center md:text-right">
+                            <h3 class="text-2xl font-black mb-3">كفاءة تحصيل السيولة</h3>
+                            <p class="text-slate-400 text-sm max-w-xs leading-relaxed">توضح هذه النسبة مدى نجاح المؤسسة في تحويل المبيعات الآجلة إلى مبالغ نقدية فعلية خلال هذه الفترة.</p>
+                        </div>
+                        
+                        <div class="relative flex items-center justify-center">
+                            <svg class="w-44 h-44">
+                                <circle class="text-slate-800" stroke-width="12" stroke="currentColor" fill="transparent" r="75" cx="88" cy="88"/>
+                                <circle class="text-emerald-500 progress-ring" stroke-width="12" stroke-dasharray="471" stroke-dashoffset="<%= 471 - (471 * report.collectionRate / 100) %>" stroke-linecap="round" stroke="currentColor" fill="transparent" r="75" cx="88" cy="88"/>
+                            </svg>
+                            <span class="absolute text-5xl font-black tabular-nums text-emerald-400"><%= report.collectionRate %>%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-pixelCard p-8 rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center items-center text-center">
+                        <div class="bg-red-50 dark:bg-red-500/10 p-5 rounded-[2rem] mb-4">
+                            <i data-lucide="arrow-up-right" class="w-10 h-10 text-red-500"></i>
+                        </div>
+                        <span class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">ديون الموردين</span>
+                        <div class="text-3xl font-black tabular-nums text-red-600">
+                            <%= (report.supplierDebt || 0).toLocaleString() %> 
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-4 italic font-bold">التزامات المشتريات الآجلة</p>
+                    </div>
+                </div>
+
+            <% } %>
+
+        </div>
+    </main>
+</div>
+
+<script>
+    // وظيفة دمج القيم قبل الإرسال لتتوافق مع الكنترولر (YYYY-MM)
+    function mergeDateValue() {
+        const month = document.getElementById('selectedMonth').value;
+        const year = document.getElementById('selectedYear').value;
+        document.getElementById('finalMonthValue').value = `${year}-${month}`;
+    }
+
+    // تهيئة الصفحة
+    window.addEventListener('load', () => {
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+
+        // قراءة الـ URL لتعيين القيم الحالية في الـ Dropdowns
+        const urlParams = new URLSearchParams(window.location.search);
+        const monthParam = urlParams.get('month');
+        
+        if (monthParam && monthParam.includes('-')) {
+            const [year, month] = monthParam.split('-');
+            document.getElementById('selectedYear').value = year;
+            document.getElementById('selectedMonth').value = month;
+        } else {
+            // القيمة الافتراضية: الوقت الحالي
+            const now = new Date();
+            document.getElementById('selectedYear').value = now.getFullYear();
+            document.getElementById('selectedMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+        }
+    });
+</script>
+
+</body>
+</html>
